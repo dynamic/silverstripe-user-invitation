@@ -83,7 +83,7 @@ class UserInvitation extends DataObject
     public function sendInvitation()
     {
         $email = Email::create()
-            ->setFrom(Email::config()->get('admin_email'))
+            ->setFrom(Security::getCurrentUser()->Email)
             ->setTo($this->Email)
             ->setSubject(
                 _t(
