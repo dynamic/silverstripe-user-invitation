@@ -27,7 +27,7 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "suggest": {
-        "lekoala/silverstripe-cms-actions": "Add actions / buttons to send user invites from the CMS admin",
+        "lekoala/silverstripe-cms-actions": "Add actions / buttons to send user invites from the CMS admin"
     },
     "autoload": {
         "psr-4": {
