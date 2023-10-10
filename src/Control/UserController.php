@@ -293,13 +293,19 @@ class UserController extends Controller implements PermissionProvider
     {
         $security = Injector::inst()->get(Security::class);
 
+        $link = 'login';
+
+        // Make it possible to set a BackURL to send users to after successful user creation
+        $back_url = Config::inst()->get(UserController::class, 'back_url');
+        $link = ($back_url) ? $link . '?BackURL=' . $back_url: $link ;
+
         return $this->renderWithLayout(
             [
                 static::class . '_success',
                 static::class,
             ],
             [
-                'LoginLink' => $security->Link('login'),
+                'LoginLink' => $security->Link($link),
             ]
         );
     }
