@@ -7,6 +7,7 @@ use SilverStripe\Control\Director;
 use SilverStripe\Control\Email\Email;
 use SilverStripe\Forms\CheckboxSetField;
 use SilverStripe\Forms\EmailField;
+use SilverStripe\Forms\ListboxField;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\ReadonlyField;
 use SilverStripe\Forms\RequiredFields;
@@ -68,13 +69,15 @@ class UserInvitation extends DataObject
         $fields->replaceField('Email', EmailField::create('Email'));
 
         $groups = Group::get()->map('Code', 'Title')->toArray();
+        
+        $group_field = ListboxField::create(
+            'Groups',
+            _t('UserController.INVITE_GROUP', 'Add to group'),
+            $groups
+        );
 
         $fields->addFieldsToTab('Root.Main', [
-            CheckboxSetField::create(
-                'Groups',
-                _t('UserController.INVITE_GROUP', 'Add to group'),
-                $groups
-            )
+            $group_field
         ]);
 
         $fields->addFieldToTab('Root.Main', ReadonlyField::create('TempHash'));
@@ -143,17 +146,19 @@ class UserInvitation extends DataObject
     {
         $valid = parent::validate();
 
-        if (self::get()->filter('Email', $this->Email)->first()) {
-            // UserInvitation already sent
-            $valid->addError(_t('UserInvitation.INVITE_ALREADY_SENT', 'This user was already sent an invite.'));
-        }
+        if (!$this->isInDB()) {
+            if (self::get()->filter('Email', $this->Email)->first()) {
+                // UserInvitation already sent
+                $valid->addError(_t('UserInvitation.INVITE_ALREADY_SENT', 'This user was already sent an invite.'));
+            }
 
-        if (Member::get()->filter('Email', $this->Email)->first()) {
-            // Member already exists
-            $valid->addError(_t(
-                'UserInvitation.MEMBER_ALREADY_EXISTS',
-                'This person is already a member of this system.'
-            ));
+            if (Member::get()->filter('Email', $this->Email)->first()) {
+                // Member already exists
+                $valid->addError(_t(
+                    'UserInvitation.MEMBER_ALREADY_EXISTS',
+                    'This person is already a member of this system.'
+                ));
+            }
         }
         return $valid;
     }

@@ -264,10 +264,14 @@ class UserController extends Controller implements PermissionProvider
             try {
                 if ($member->validate()) {
                     $member->write();
-                    // Add user group info
-                    $groups = explode(',', $invite->Groups);
-                    foreach (Group::get()->filter(['Code' => $groups]) as $group) {
-                        $group->Members()->add($member);
+
+                    // TODO: Clean this up - for some reason the groups from frontend form are saved like group1,group2, while the CMS field saves the data like ["group1","group2"]
+                    $groups_replaced = str_replace(['[',']', '"'], '', $invite->Groups);
+                    $groups = explode(',', $groups_replaced);
+
+                    foreach ($groups as $groupCode) {
+                        // Add member to selected groups by groupCode
+                        $member->addToGroupByCode($groupCode);
                     }
                 }
             } catch (ValidationException $e) {
