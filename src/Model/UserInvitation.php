@@ -2,8 +2,10 @@
 
 namespace Dynamic\SilverStripe\UserInvitations\Model;
 
+use LeKoala\CmsActions\CustomAction;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\Email\Email;
+use SilverStripe\Forms\LiteralField;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Security\Member;
@@ -147,5 +149,26 @@ class UserInvitation extends DataObject
     public function canCreate($member = null, $context = null)
     {
         return Permission::check('ACCESS_USER_INVITATIONS');
+    }
+    public function getCMSActions()
+    {
+        $actions = parent::getCMSActions();
+
+        if ($this->isInDB()) {
+            $actions->push(new CustomAction("doCustomActionSendInvitation", _t('UserInvitation.SendInvitation', 'Send invitation')));
+        } else {
+            $actions->push(LiteralField::create('doCustomActionSendInvitationUnavailable', "<span class=\"bb-align\">" . _t('UserInvitation.CreateSaveBeforeSending', 'Create/Save before sending invite!')."</span>"));
+        }
+
+        return $actions;
+    }
+
+    public function doCustomActionSendInvitation() {
+
+        if ($email = $this->sendInvitation()) {
+            return $email;
+        }
+
+        return 'Invite was NOT send';
     }
 }
