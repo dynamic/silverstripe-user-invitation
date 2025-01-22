@@ -121,7 +121,6 @@ class UserInvitation extends DataObject
             ->setData(
                 [
                     'Invite' => $this,
-                    'SiteURL' => Director::absoluteBaseURL(),
                 ]
             );
 
