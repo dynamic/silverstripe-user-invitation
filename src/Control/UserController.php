@@ -191,11 +191,10 @@ class UserController extends Controller implements PermissionProvider
         if (!$hash = $this->getRequest()->param('ID')) {
             return $this->forbiddenError();
         }
-        if (
-            $invite = UserInvitation::get()->filter(
-                'TempHash',
-                $hash
-            )->first()
+        if ($invite = UserInvitation::get()->filter(
+            'TempHash',
+            $hash
+        )->first()
         ) {
             if ($invite->isExpired()) {
                 return $this->redirect($this->Link('expired'));
@@ -255,11 +254,10 @@ class UserController extends Controller implements PermissionProvider
      */
     public function saveInvite($data, Form $form)
     {
-        if (
-            !$invite = UserInvitation::get()->filter(
-                'TempHash',
-                $data['HashID']
-            )->first()
+        if (!$invite = UserInvitation::get()->filter(
+            'TempHash',
+            $data['HashID']
+        )->first()
         ) {
             return $this->notFoundError();
         }
@@ -356,11 +354,10 @@ class UserController extends Controller implements PermissionProvider
      */
     public function Link($action = null)
     {
-        if (
-            $url = array_search(
-                get_called_class(),
-                (array)Config::inst()->get(Director::class, 'rules')
-            )
+        if ($url = array_search(
+            get_called_class(),
+            (array)Config::inst()->get(Director::class, 'rules')
+        )
         ) {
             // Check for slashes and drop them
             if ($indexOf = stripos($url, '/')) {
