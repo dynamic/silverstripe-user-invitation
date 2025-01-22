@@ -80,8 +80,10 @@ class UserInvitation extends DataObject
         $fields->replaceField('Email', EmailField::create('Email'));
 
         $fields->addFieldToTab('Root.Main', ReadonlyField::create('TempHash'));
-        $fields->replaceField('InvitedByID',
-            $fields->dataFieldByName('InvitedByID')->performReadonlyTransformation());
+        $fields->replaceField(
+            'InvitedByID',
+            $fields->dataFieldByName('InvitedByID')->performReadonlyTransformation()
+        );
         return $fields;
     }
 
@@ -148,18 +150,18 @@ class UserInvitation extends DataObject
         $exists = $this->isInDB();
 
         if (!$exists) {
-        if (self::get()->filter('Email', $this->Email)->first()) {
-            // UserInvitation already sent
-            $valid->addError(_t('UserInvitation.INVITE_ALREADY_SENT', 'This user was already sent an invite.'));
-        }
+            if (self::get()->filter('Email', $this->Email)->first()) {
+                // UserInvitation already sent
+                $valid->addError(_t('UserInvitation.INVITE_ALREADY_SENT', 'This user was already sent an invite.'));
+            }
 
-        if (Member::get()->filter('Email', $this->Email)->first()) {
-            // Member already exists
-            $valid->addError(_t(
-                'UserInvitation.MEMBER_ALREADY_EXISTS',
-                'This person is already a member of this system.'
-            ));
-        }
+            if (Member::get()->filter('Email', $this->Email)->first()) {
+                // Member already exists
+                $valid->addError(_t(
+                    'UserInvitation.MEMBER_ALREADY_EXISTS',
+                    'This person is already a member of this system.'
+                ));
+            }
         }
         return $valid;
     }
@@ -192,19 +194,20 @@ class UserInvitation extends DataObject
         if ($this->isInDB()) {
             $actions->push(new CustomAction("doCustomActionSendInvitation", _t('UserInvitation.SendInvitation', 'Send invitation')));
         } else {
-            $actions->push(LiteralField::create('doCustomActionSendInvitationUnavailable', "<span class=\"bb-align\">" . _t('UserInvitation.CreateSaveBeforeSending', 'Create/Save before sending invite!')."</span>"));
+            $actions->push(LiteralField::create('doCustomActionSendInvitationUnavailable', "<span class=\"bb-align\">" . _t('UserInvitation.CreateSaveBeforeSending', 'Create/Save before sending invite!') . "</span>"));
         }
 
         return $actions;
     }
 
-    public function doCustomActionSendInvitation() {
+    public function doCustomActionSendInvitation()
+    {
 
         if ($email = $this->sendInvitation()) {
             return $email;
         }
 
-        return 'Invite was NOT send'; 
+        return 'Invite was NOT send';
     }
 
     public function getInvitationLink()
