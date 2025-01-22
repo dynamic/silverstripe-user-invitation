@@ -2,22 +2,22 @@
 
 namespace Dynamic\SilverStripe\UserInvitations\Model;
 
-use LeKoala\CmsActions\CustomAction;
-use SilverStripe\Control\Director;
-use SilverStripe\Control\Email\Email;
-use SilverStripe\Dev\Debug;
-use SilverStripe\Forms\CheckboxSetField;
-use SilverStripe\Forms\EmailField;
-use SilverStripe\Forms\LiteralField;
-use SilverStripe\Forms\ReadonlyField;
-use SilverStripe\Forms\RequiredFields;
 use SilverStripe\ORM\DataObject;
-use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Security\Group;
 use SilverStripe\Security\Member;
-use SilverStripe\Security\Permission;
-use SilverStripe\Security\RandomGenerator;
+use SilverStripe\Control\Director;
+use SilverStripe\Forms\EmailField;
 use SilverStripe\Security\Security;
+use LeKoala\CmsActions\CustomAction;
+use SilverStripe\Control\Controller;
+use SilverStripe\Forms\LiteralField;
+use SilverStripe\Control\Email\Email;
+use SilverStripe\Forms\ReadonlyField;
+use SilverStripe\Security\Permission;
+use SilverStripe\Forms\RequiredFields;
+use SilverStripe\Forms\CheckboxSetField;
+use SilverStripe\ORM\FieldType\DBDatetime;
+use SilverStripe\Security\RandomGenerator;
 
 /**
  * Class UserInvitation
@@ -204,6 +204,11 @@ class UserInvitation extends DataObject
             return $email;
         }
 
-        return 'Invite was NOT send';
+        return 'Invite was NOT send'; 
+    }
+
+    public function getInvitationLink()
+    {
+        return Controller::join_links(Director::AbsoluteBaseURL(), 'user', 'accept', $this->TempHash);
     }
 }
