@@ -18,7 +18,6 @@ use Dynamic\SilverStripe\UserInvitations\Control\UserController;
 
 class UserControllerTest extends FunctionalTest
 {
-
     protected static $fixture_file = 'UserControllerTest.yml';
 
     /**

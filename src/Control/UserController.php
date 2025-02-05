@@ -29,7 +29,6 @@ use SilverStripe\View\ThemeResourceLoader;
 
 class UserController extends Controller implements PermissionProvider
 {
-
     private static $allowed_actions = [
         'index',
         'accept',
@@ -195,7 +194,8 @@ class UserController extends Controller implements PermissionProvider
         if ($invite = UserInvitation::get()->filter(
             'TempHash',
             $hash
-        )->first()) {
+        )->first()
+        ) {
             if ($invite->isExpired()) {
                 return $this->redirect($this->Link('expired'));
             }
@@ -257,7 +257,8 @@ class UserController extends Controller implements PermissionProvider
         if (!$invite = UserInvitation::get()->filter(
             'TempHash',
             $data['HashID']
-        )->first()) {
+        )->first()
+        ) {
             return $this->notFoundError();
         }
         if ($form->validationResult()->isValid()) {
@@ -273,7 +274,7 @@ class UserController extends Controller implements PermissionProvider
                     $groups = json_decode($invite->Groups);
 
                     // Add user group info
-                                        foreach (Group::get()->filter(['Code' => $groups]) as $group) {
+                    foreach (Group::get()->filter(['Code' => $groups]) as $group) {
                         $group->Members()->add($member);
                     }
                 }
@@ -302,7 +303,7 @@ class UserController extends Controller implements PermissionProvider
 
         $link = 'login';
         $back_url = Config::inst()->get(UserController::class, 'back_url');
-        $link = ($back_url) ? $link . '?BackURL=' . $back_url: $link ;
+        $link = ($back_url) ? $link . '?BackURL=' . $back_url : $link ;
 
         return $this->renderWithLayout(
             [
@@ -356,7 +357,8 @@ class UserController extends Controller implements PermissionProvider
         if ($url = array_search(
             get_called_class(),
             (array)Config::inst()->get(Director::class, 'rules')
-        )) {
+        )
+        ) {
             // Check for slashes and drop them
             if ($indexOf = stripos($url, '/')) {
                 $url = substr($url, 0, $indexOf);

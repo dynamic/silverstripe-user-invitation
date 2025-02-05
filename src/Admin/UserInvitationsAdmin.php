@@ -14,7 +14,6 @@ use SilverStripe\Admin\ModelAdmin;
 
 class UserInvitationsAdmin extends ModelAdmin
 {
-
     private static $managed_models = [
         UserInvitation::class
     ];
