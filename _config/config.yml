@@ -2,7 +2,7 @@
 Name: userinvitationconfig
 ---
 Dynamic\SilverStripe\UserInvitations\Model\UserInvitation:
-  days_to_expiry: 2 # Days until an invitation expires
+  days_to_expiry: 5 # Days until an invitation expires
 
 Dynamic\SilverStripe\UserInvitations\Control\UserController:
   back_url: ''
