@@ -24,6 +24,7 @@
         "lekoala/silverstripe-cms-actions": "^2.0"
     },
     "require-dev": {
+        "cambis/silverstan": "^2.1",
         "silverstripe/recipe-testing": "^4"
     },
     "minimum-stability": "dev",
