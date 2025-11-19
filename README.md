@@ -3,7 +3,7 @@
 This module adds the ability to invite users to a secure website (e.g. Intranet or Extranet).
 
 [![CI](https://github.com/dynamic/silverstripe-user-invitation/actions/workflows/ci.yml/badge.svg)](https://github.com/dynamic/silverstripe-user-invitation/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/dynamic/silverstripe-user-invitation/branch/master/graph/badge.svg)](https://codecov.io/gh/dynamic/silverstripe-user-invitation)
+[![Sponsor](https://img.shields.io/badge/Sponsor-Dynamic-blue.svg)](https://github.com/sponsors/dynamic)
 
 [![Latest Stable Version](https://poser.pugx.org/dynamic/silverstripe-user-invitation/v/stable)](https://packagist.org/packages/dynamic/silverstripe-user-invitation)
 [![Total Downloads](https://poser.pugx.org/dynamic/silverstripe-user-invitation/downloads)](https://packagist.org/packages/dynamic/silverstripe-user-invitation)
@@ -12,43 +12,61 @@ This module adds the ability to invite users to a secure website (e.g. Intranet 
 
 ## Requirements
 
- * silverstripe/framework ^4
+* PHP ^8.3
+* SilverStripe ^6.0
+* [lekoala/silverstripe-cms-actions](https://github.com/lekoala/silverstripe-cms-actions) ^2.0
 
- ## Installation
+## Installation
 
-```
+```bash
 composer require dynamic/silverstripe-user-invitation
 ```
 
-## License
-
-See [License](LICENSE.md)
-
-## Invite users to Silverstripe CMS
-This module makes it posible to invite users that you would like to register on your site. Users can be invited from either a:
-- frontend form
-  ![custom action](docs/frontend-invite.png "Frontend invite")
-
-- or via an admin interface in the CMS.
-  ![custom action](docs/cms-invite.png "Frontend invite")
 ## Features
 
-* Quick-entry invitation form (By default only first name and email fields are required to invite someone)
-* Sends email invitations to recipient
-* Supports optional user group assignment (See below for how to enforce this group selection) 
-* Invitation expiry can be set via configuration.
-* Default SilverStripe member validation is applied.
-* Create and send invites from CMS admin interface
+* **Quick-entry invitation form** - By default only first name and email fields are required to invite someone
+* **Email invitations** - Sends email invitations to recipients
+* **User group assignment** - Supports optional user group assignment (can be made required via configuration)
+* **Invitation expiry** - Invitation expiry can be set via configuration
+* **Member validation** - Default SilverStripe member validation is applied
+* **CMS interface** - Create and send invites from CMS admin interface or frontend form
 
-### Force required user group assignment
-Place the following in your mysite/_config/config.yml
+## Usage
+
+This module enables you to invite users to register on your site. Users can be invited from either:
+
+### Frontend Form
+![Frontend invite](docs/frontend-invite.png "Frontend invite")
+
+### CMS Admin Interface
+![CMS invite](docs/cms-invite.png "CMS invite")
+
+## Configuration
+
+### Email Configuration
+
+Set an admin email address (used as sender) in your `app/_config/email.yml` file:
+
 ```yml
-Dynamic\SilverStripe\UserInvitations\Model\UserInvitation:
-    force_require_group: true
+SilverStripe\Control\Email\Email:
+  admin_email:
+    mail@example.com: 'Admin at example.com'
 ```
 
-### Template override
-To update the base template use `updateMainTemplates`. It defaults to `Page`.
+For easy email testing, use: https://mailcatcher.me/
+
+### Force Required User Group Assignment
+
+To require group selection when inviting users, add the following to your configuration:
+
+```yml
+Dynamic\SilverStripe\UserInvitations\Model\UserInvitation:
+  force_require_group: true
+```
+
+### Template Override
+
+To update the base template, use `updateMainTemplates`. It defaults to `Page`.
 
 ```php
 /**
@@ -60,22 +78,30 @@ public function updateMainTemplates(&$mainTemplates)
 }
 ```
 
-### Redirect after successful user creation
+### Redirect After Successful User Creation
 
-You can set a custom 'BackURL', that the user will be redirected  to, after having completed signup from invitation.
+Set a custom 'BackURL' to redirect users after completing signup from invitation:
+
 ```yml
 Dynamic\SilverStripe\UserInvitations\Control\UserController:
-    back_url: '/admin/'
+  back_url: '/admin/'
 ```
 
-## Please remember to set an admin_email (used as sender)
-This is done in your app/_config/email.yml file
-```yml
-SilverStripe\Control\Email\Email:
-    admin_email: #Default email this site sends emails from
-        mail@example.com: 'Admin at example.com'
-```
-For easy email testing, use: https://mailcatcher.me/
+## License
+
+See [License](LICENSE.md)
+
+## Upgrading from 1.x to 2.x
+
+Version 2.0 is compatible with SilverStripe 6. Key changes:
+
+- **PHP 8.3+** required
+- **SilverStripe CMS 6** required
+- Updated dependency: `lekoala/silverstripe-cms-actions` ^2.0
+- Validation classes moved to new namespaces
+- Form validation API updated
+
+Please review the [SilverStripe 6 upgrade guide](https://docs.silverstripe.org/en/6/changelogs/6.0.0/) for detailed information about framework changes.
 
 ## Maintainers
 
