@@ -24,8 +24,9 @@
         }
     ],
     "require": {
+        "php": "^8.3",
         "silverstripe/framework": "^6",
-        "lekoala/silverstripe-cms-actions": "^2"
+        "lekoala/silverstripe-cms-actions": "^2.0"
     },
     "require-dev": {
         "cambis/silverstan": "^2.1",
@@ -46,10 +47,5 @@
             "silverstripe/vendor-plugin": true
         },
         "process-timeout": 600
-    },
-    "extra": {
-        "branch-alias": {
-            "dev-main": "2.0.x-dev"
-        }
     }
 }

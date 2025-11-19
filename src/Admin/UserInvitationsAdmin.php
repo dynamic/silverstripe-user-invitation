@@ -14,14 +14,25 @@ use SilverStripe\Admin\ModelAdmin;
 
 class UserInvitationsAdmin extends ModelAdmin
 {
-
-    private static array $managed_models = [
+    /**
+     * @config
+     */
+    private static $managed_models = [
         UserInvitation::class
     ];
 
-    private static string $url_segment = 'userinvite-admin';
+    /**
+     * @config
+     */
+    private static $url_segment = 'userinvite-admin';
 
-    private static string $menu_title = 'User invite';
+    /**
+     * @config
+     */
+    private static $menu_title = 'User invite';
 
-    private static string $menu_icon_class = 'font-icon-torso';
+    /**
+     * @config
+     */
+    private static $menu_icon_class = 'font-icon-torso';
 }

@@ -2,75 +2,79 @@
 
 namespace Dynamic\SilverStripe\UserInvitations\Model;
 
-use SilverStripe\Forms\Validation\RequiredFieldsValidator;
-use SilverStripe\Core\Validation\ValidationResult;
-use LeKoala\CmsActions\CustomAction;
-use SilverStripe\Control\Director;
-use SilverStripe\Control\Email\Email;
-use SilverStripe\Forms\CheckboxSetField;
-use SilverStripe\Forms\EmailField;
-use SilverStripe\Forms\LiteralField;
-use SilverStripe\Forms\ReadonlyField;
-use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\DataObject;
-use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Security\Group;
 use SilverStripe\Security\Member;
-use SilverStripe\Security\Permission;
-use SilverStripe\Security\RandomGenerator;
+use SilverStripe\Control\Director;
+use SilverStripe\Forms\EmailField;
 use SilverStripe\Security\Security;
+use LeKoala\CmsActions\CustomAction;
+use SilverStripe\Control\Controller;
+use SilverStripe\Forms\LiteralField;
+use SilverStripe\Control\Email\Email;
+use SilverStripe\Core\Validation\ValidationResult;
+use SilverStripe\Forms\ReadonlyField;
+use SilverStripe\Forms\Validation\RequiredFieldsValidator;
+use SilverStripe\Security\Permission;
+use SilverStripe\Forms\CheckboxSetField;
+use SilverStripe\ORM\FieldType\DBDatetime;
+use SilverStripe\Security\RandomGenerator;
 
 /**
  * Class UserInvitation
  * @package Dynamic
  * @subpackage UserInvitation
  *
- * @property string FirstName
- * @property string Email
- * @property string TempHash
- * @property string Groups
- * @property int InvitedByID
- * @property Member InvitedBy
+ * @property string $FirstName
+ * @property string $Email
+ * @property string $TempHash
+ * @property string $Groups
+ * @property int $InvitedByID
+ * @method Member InvitedBy()
  *
  */
 class UserInvitation extends DataObject
 {
-    private static string $table_name = "UserInvitation";
+    /**
+     * @config
+     */
+    private static $table_name = "UserInvitation";
 
     /**
      * Used to control whether a group selection on the invitation form is required.
+     * @var bool
+     * @config
      */
-    private static bool $force_require_group = false;
+    private static $force_require_group = false;
 
-    private static array $db = [
+    /**
+     * @config
+     */
+    private static $db = [
         'FirstName' => 'Varchar',
         'Email' => 'Varchar(254)',
         'TempHash' => 'Varchar',
         'Groups' => 'Text'
     ];
 
-    private static array $has_one = [
+    /**
+     * @config
+     */
+    private static $has_one = [
         'InvitedBy' => Member::class
     ];
 
-    private static array $indexes = [
+    /**
+     * @config
+     */
+    private static $indexes = [
         'Email' => true,
         'TempHash' => true
     ];
 
-    public function summaryFields()
-    {
-        return [
-            'FirstName' => _t('UserInvitation.FirstName', 'First Name'),
-            'Email' => _t('UserInvitation.Email', 'Email'),
-            'InvitedBy.FirstName' => _t('UserInvitation.InvitedBy', 'Invited By'),
-            'Created' => _t('UserInvitation.Created', 'Created')
-        ];
-    }
-
     /**
      * Removes the hash field from the list.
-     * @return FieldList
+     * @return \SilverStripe\Forms\FieldList
      */
     public function getCMSFields()
     {
@@ -78,10 +82,8 @@ class UserInvitation extends DataObject
         $fields->removeByName(['TempHash']);
 
         $groups = Group::get()->map('Code', 'Title')->toArray();
-        $fields->addFieldsToTab('Root.Main', [
-            TextField::create('FirstName', _t('SilverStripe\Security\Member.FIRSTNAME')),
-            EmailField::create('Email', _t('SilverStripe\Security\Member.EMAIL')),
 
+        $fields->addFieldsToTab('Root.Main', [
             CheckboxSetField::create(
                 'Groups',
                 _t('UserController.INVITE_GROUP', 'Add to group'),
@@ -92,17 +94,17 @@ class UserInvitation extends DataObject
         $fields->replaceField('Email', EmailField::create('Email'));
 
         $fields->addFieldToTab('Root.Main', ReadonlyField::create('TempHash'));
-        $fields->replaceField('InvitedByID',
-            $fields->dataFieldByName('InvitedByID')
-                ->performReadonlyTransformation()
-                ->setTitle(_t('UserInvitation.InvitedBy', 'Invited by')));
+        $fields->replaceField(
+            'InvitedByID',
+            $fields->dataFieldByName('InvitedByID')->performReadonlyTransformation()
+        );
         return $fields;
     }
 
-    protected function onBeforeWrite()
+    public function onBeforeWrite()
     {
         if (!$this->ID) {
-            $generator = RandomGenerator::create();
+            $generator = new RandomGenerator();
             $this->TempHash = $generator->randomToken('sha1');
 
             if (Security::getCurrentUser()) {
@@ -112,7 +114,6 @@ class UserInvitation extends DataObject
                 }
             }
         }
-        
         parent::onBeforeWrite();
     }
 
@@ -134,7 +135,6 @@ class UserInvitation extends DataObject
             ->setData(
                 [
                     'Invite' => $this,
-                    'SiteURL' => Director::absoluteBaseURL(),
                 ]
             );
 
@@ -145,7 +145,7 @@ class UserInvitation extends DataObject
         return $email;
     }
 
-    public function getCMSValidator(): RequiredFieldsValidator
+    public function getCMSValidator()
     {
         return RequiredFieldsValidator::create([
             'FirstName',
@@ -155,6 +155,7 @@ class UserInvitation extends DataObject
 
     /**
      * Checks if a user invite was already sent, or if a user is already a member
+     * @return ValidationResult
      */
     public function validate(): ValidationResult
     {
@@ -175,7 +176,6 @@ class UserInvitation extends DataObject
                 ));
             }
         }
-        
         return $valid;
     }
 
@@ -191,9 +191,8 @@ class UserInvitation extends DataObject
         $ago = abs($time - strtotime($this->LastEdited));
         $rounded = round($ago / 86400);
         if ($rounded > $days) {
-            return true;
+            $result = true;
         }
-        
         return $result;
     }
 
@@ -201,26 +200,45 @@ class UserInvitation extends DataObject
     {
         return Permission::check('ACCESS_USER_INVITATIONS');
     }
-    
     public function getCMSActions()
     {
         $actions = parent::getCMSActions();
 
         if ($this->isInDB()) {
-            $actions->push(CustomAction::create("doCustomActionSendInvitation", _t('UserInvitation.SendInvitation', 'Send invitation')));
+            $actions->push(new CustomAction(
+                "doCustomActionSendInvitation",
+                _t(
+                    'UserInvitation.SendInvitation',
+                    'Send invitation'
+                )
+            ));
         } else {
-            $actions->push(LiteralField::create('doCustomActionSendInvitationUnavailable', '<span class="bb-align">' . _t('UserInvitation.CreateSaveBeforeSending', 'Create/Save before sending invite!')."</span>"));
+            $actions->push(
+                LiteralField::create(
+                    'doCustomActionSendInvitationUnavailable',
+                    "<span class=\"bb-align\">" . _t(
+                        'UserInvitation.CreateSaveBeforeSending',
+                        'Create/Save before sending invite!'
+                    ) . "</span>"
+                )
+            );
         }
 
         return $actions;
     }
 
-    public function doCustomActionSendInvitation() {
+    public function doCustomActionSendInvitation()
+    {
 
         if ($email = $this->sendInvitation()) {
             return $email;
         }
 
         return 'Invite was NOT send';
+    }
+
+    public function getInvitationLink()
+    {
+        return Controller::join_links(Director::AbsoluteBaseURL(), 'user', 'accept', $this->TempHash);
     }
 }

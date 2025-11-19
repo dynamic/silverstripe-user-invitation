@@ -2,12 +2,6 @@
 
 namespace Dynamic\SilverStripe\UserInvitations\Control;
 
-use SilverStripe\Core\Validation\ValidationException;
-use SilverStripe\Forms\Validation\RequiredFieldsValidator;
-use SilverStripe\Model\ModelData;
-use SilverStripe\ORM\FieldType\DBHTMLText;
-use Page;
-use SilverStripe\Model\ArrayData;
 use Dynamic\SilverStripe\UserInvitations\Model\UserInvitation;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
@@ -21,20 +15,22 @@ use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\HiddenField;
+use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\Forms\ListboxField;
 use SilverStripe\Forms\TextField;
+use SilverStripe\Forms\Validation\RequiredFieldsValidator;
 use SilverStripe\Security\Group;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\PermissionProvider;
 use SilverStripe\Security\Security;
-use SilverStripe\View\SSViewer;
-use SilverStripe\View\ThemeResourceLoader;
 
 class UserController extends Controller implements PermissionProvider
 {
-
-    private static array $allowed_actions = [
+    /**
+     * @config
+     */
+    private static $allowed_actions = [
         'index',
         'accept',
         'success',
@@ -60,7 +56,7 @@ class UserController extends Controller implements PermissionProvider
         ];
     }
 
-    protected function init()
+    public function init()
     {
         parent::init();
 
@@ -71,20 +67,18 @@ class UserController extends Controller implements PermissionProvider
             $link = $security->Link('login');
             return $this->redirect(Controller::join_links(
                 $link,
-                '?BackURL=' . $this->Link('index')
+                "?BackURL={$this->Link('index')}"
             ));
         }
-
-        return null;
     }
 
-    public function index(): HTTPResponse|DBHTMLText
+    public function index()
     {
         if (!Permission::check('ACCESS_USER_INVITATIONS')) {
             return Security::permissionFailure();
+        } else {
+            return $this->renderWithLayout(static::class);
         }
-
-        return $this->renderWithLayout(static::class);
     }
 
     public function InvitationForm()
@@ -118,13 +112,19 @@ class UserController extends Controller implements PermissionProvider
                 _t('UserController.SEND_INVITATION', 'Send Invitation')
             )
         );
-        $requiredFields = RequiredFieldsValidator::create('FirstName', 'Email');
+        $requiredFields = RequiredFieldsValidator::create(['FirstName', 'Email']);
 
         if (UserInvitation::config()->get('force_require_group')) {
             $requiredFields->addRequiredField('Groups');
         }
 
-        $form = Form::create($this, 'InvitationForm', $fields, $actions, $requiredFields);
+        $form = new Form(
+            $this,
+            'InvitationForm',
+            $fields,
+            $actions,
+            $requiredFields
+        );
         $this->extend('updateInvitationForm', $form);
         return $form;
     }
@@ -132,9 +132,10 @@ class UserController extends Controller implements PermissionProvider
     /**
      * Records and sends the user's invitation
      * @param $data
+     * @param Form $form
      * @return bool|HTTPResponse
      */
-    public function sendInvite(array $data, Form $form): HTTPResponse
+    public function sendInvite($data, Form $form)
     {
         if (!Permission::check('ACCESS_USER_INVITATIONS')) {
             $form->sessionMessage(
@@ -146,8 +147,7 @@ class UserController extends Controller implements PermissionProvider
             );
             return $this->redirectBack();
         }
-
-        if (!$form->validate()->isValid()) {
+        if (!$form->getValidator()->getResult()->isValid()) {
             $form->sessionMessage(
                 _t(
                     'UserController.SENT_INVITATION_VALIDATION_FAILED',
@@ -167,14 +167,13 @@ class UserController extends Controller implements PermissionProvider
         $invite->Groups = $groups;
         try {
             $invite->write();
-        } catch (ValidationException $validationException) {
+        } catch (ValidationException $e) {
             $form->sessionMessage(
-                $validationException->getMessage(),
+                $e->getMessage(),
                 'bad'
             );
             return $this->redirectBack();
         }
-
         $invite->sendInvitation();
 
         $form->sessionMessage(
@@ -193,18 +192,17 @@ class UserController extends Controller implements PermissionProvider
         if (!$hash = $this->getRequest()->param('ID')) {
             return $this->forbiddenError();
         }
-
         if ($invite = UserInvitation::get()->filter(
             'TempHash',
             $hash
-        )->first()) {
+        )->first()
+        ) {
             if ($invite->isExpired()) {
                 return $this->redirect($this->Link('expired'));
             }
         } else {
             return $this->redirect($this->Link('notfound'));
         }
-
         return $this->renderWithLayout([
             static::class . '_accept',
             static::class,
@@ -238,26 +236,33 @@ class UserController extends Controller implements PermissionProvider
                 _t('UserController.ACCEPTFORM_REGISTER', 'Register')
             )
         );
-        $requiredFields = RequiredFieldsValidator::create('FirstName', 'Surname');
-        $form = Form::create($this, 'AcceptForm', $fields, $actions, $requiredFields);
+        $requiredFields = RequiredFieldsValidator::create(['FirstName', 'Surname']);
+        $form = new Form(
+            $this,
+            'AcceptForm',
+            $fields,
+            $actions,
+            $requiredFields
+        );
         $this->extend('updateAcceptForm', $form, $invite);
         return $form;
     }
 
     /**
-     * @param $data
-     * @return bool|SS_HTTPResponse
+     * @param array $data
+     * @param Form $form
+     * @return HTTPResponse
      */
-    public function saveInvite(array $data, Form $form): HTTPResponse
+    public function saveInvite($data, Form $form)
     {
         if (!$invite = UserInvitation::get()->filter(
             'TempHash',
             $data['HashID']
-        )->first()) {
+        )->first()
+        ) {
             return $this->notFoundError();
         }
-
-        if ($form->validate()->isValid()) {
+        if ($form->getValidator()->getResult()->isValid()) {
             $member = Member::create(['Email' => $invite->Email]);
             $form->saveInto($member);
 
@@ -270,7 +275,7 @@ class UserController extends Controller implements PermissionProvider
                     $groups = json_decode($invite->Groups);
 
                     // Add user group info
-                                        foreach (Group::get()->filter(['Code' => $groups]) as $group) {
+                    foreach (Group::get()->filter(['Code' => $groups]) as $group) {
                         $group->Members()->add($member);
                     }
                 }
@@ -281,26 +286,25 @@ class UserController extends Controller implements PermissionProvider
                 );
                 return $this->redirectBack();
             }
-
             // Delete invitation
             $invite->delete();
             return $this->redirect($this->Link('success'));
+        } else {
+            $form->sessionMessage(
+                json_encode($form->getValidator()->getErrors()),
+                'bad'
+            );
+            return $this->redirectBack();
         }
-
-        $form->sessionMessage(
-            Convert::array2json($form->getValidator()->getErrors()),
-            'bad'
-        );
-        return $this->redirectBack();
     }
 
-    public function success(): DBHTMLText
+    public function success()
     {
         $security = Injector::inst()->get(Security::class);
 
         $link = 'login';
         $back_url = Config::inst()->get(UserController::class, 'back_url');
-        $link = ($back_url) ? $link . '?BackURL=' . $back_url: $link ;
+        $link = ($back_url) ? $link . '?BackURL=' . $back_url : $link ;
 
         return $this->renderWithLayout(
             [
@@ -313,7 +317,7 @@ class UserController extends Controller implements PermissionProvider
         );
     }
 
-    public function expired(): DBHTMLText
+    public function expired()
     {
         return $this->renderWithLayout([
             static::class . '_expired',
@@ -321,7 +325,7 @@ class UserController extends Controller implements PermissionProvider
         ]);
     }
 
-    public function notfound(): DBHTMLText
+    public function notfound()
     {
         return $this->renderWithLayout([
             static::class . '_notfound',
@@ -337,7 +341,7 @@ class UserController extends Controller implements PermissionProvider
         ));
     }
 
-    private function notFoundError(): HTTPResponse
+    private function notFoundError()
     {
         return $this->redirect($this->Link('notfound'));
     }
@@ -353,59 +357,44 @@ class UserController extends Controller implements PermissionProvider
     {
         if ($url = array_search(
             get_called_class(),
-            (array)Config::inst()->get(Director::class, 'rules'),
-            true
-        )) {
+            (array)Config::inst()->get(Director::class, 'rules')
+        )
+        ) {
             // Check for slashes and drop them
             if ($indexOf = stripos($url, '/')) {
                 $url = substr($url, 0, $indexOf);
             }
-
             return $this->join_links($url, $action);
         }
-
-        return null;
+        return '';
     }
 
     /**
      * @param array|string $templates
-     * @param array|ArrayData $customFields
+     * @param array $customFields
+     * @return \SilverStripe\ORM\FieldType\DBHTMLText
      */
-    public function renderWithLayout($templates, array|ModelData $customFields = []): DBHTMLText
+    public function renderWithLayout($templates, $customFields = [])
     {
-        $layoutTemplates = $this->getLayoutTemplates($templates);
+        $templates = $this->getLayoutTemplates($templates);
 
-        // Prepare main templates
-        $mainTemplates = [Page::class];
-        $this->extend('updateMainTemplates', $mainTemplates);
-
-        // Render layout content first
-        $layoutViewer = SSViewer::create($layoutTemplates);
-        $data = $this->customise($customFields);
-        $layoutContent = $layoutViewer->process($data);
-
-        // Render main template with layout content
-        $mainViewer = SSViewer::create($mainTemplates);
-        return $mainViewer->process($data->customise([
-            'Layout' => $layoutContent
-        ]));
+        return $this->customise($customFields)->renderWith($templates);
     }
 
     /**
      * @param array|string $templates
+     * @return array
      */
-    public function getLayoutTemplates($templates): array
+    public function getLayoutTemplates($templates)
     {
         if (is_string($templates)) {
             $templates = [$templates];
         }
-
         // Always include page template as fallback
-        if (count($templates) === 0 || $templates[count($templates) - 1] !== 'Page') {
-            $templates[] = 'Page';
+        if (count($templates) == 0 || $templates[count($templates) - 1] !== 'Page') {
+            array_push($templates, 'Page');
         }
-
-        // Add Layout type prefix for template resolution
+        // otherwise it renders funny
         $templates = ['type' => 'Layout'] + $templates;
         return $templates;
     }
