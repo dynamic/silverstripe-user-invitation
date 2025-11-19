@@ -14,3 +14,4 @@ Dynamic\SilverStripe\UserInvitations\Model\UserInvitation:
     InvitedBy: =>SilverStripe\Security\Member.jane
     TempHash: kljlwer23432xvdsf
     Created: 2016-01-01 11:00:00
+    LastEdited: 2016-01-01 11:00:00

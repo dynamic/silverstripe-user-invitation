@@ -29,10 +29,11 @@ Dynamic\SilverStripe\UserInvitations\Model\UserInvitation:
     Email: joe@soap.person
     InvitedBy: =>SilverStripe\Security\Member.jane
     TempHash: 234jlkjf798723lj4
-    Groups: 'test1,test2'
+    Groups: '["test1","test2"]'
   expired:
     FirstName: Slow
     Email: slow@joe.person
     InvitedBy: =>SilverStripe\Security\Member.jane
     TempHash: kljlwer23432xvdsf
     Created: 2016-01-01 11:00:00
+    LastEdited: 2016-01-01 11:00:00

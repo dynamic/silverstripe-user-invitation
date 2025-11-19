@@ -42,14 +42,16 @@ class UserInvitationTest extends SapphireTest
     }
 
     /**
-     * Tests that the TempHash field has been removed
+     * Tests that the TempHash field is readonly
      */
     public function testGetCMSFields()
     {
         /** @var UserInvitation $joe */
         $joe = $this->objFromFixture(UserInvitation::class, 'joe');
         $fields = $joe->getCMSFields();
-        $this->assertNull($fields->dataFieldByName('TempHash'));
+        $tempHashField = $fields->dataFieldByName('TempHash');
+        $this->assertNotNull($tempHashField);
+        $this->assertTrue($tempHashField->isReadonly());
         $this->assertNotNull($fields->dataFieldByName('FirstName'));
         $this->assertNotNull($fields->dataFieldByName('Email'));
     }
@@ -95,5 +97,25 @@ class UserInvitationTest extends SapphireTest
         $invite->write();
         $this->assertNotNull($invite->TempHash);
         $this->assertNotNull($invite->InvitedByID);
+    }
+
+    /**
+     * Tests that the invitation URL is correctly generated
+     */
+    public function testGetInvitationLink()
+    {
+        /** @var UserInvitation $joe */
+        $joe = $this->objFromFixture(UserInvitation::class, 'joe');
+        
+        $link = $joe->getInvitationLink();
+        
+        // Should contain the base URL path
+        $this->assertStringContainsString('/user/accept/', $link);
+        
+        // Should contain the TempHash
+        $this->assertStringContainsString($joe->TempHash, $link);
+        
+        // Should be a valid URL format
+        $this->assertMatchesRegularExpression('#^https?://.+/user/accept/[a-f0-9]+$#', $link);
     }
 }

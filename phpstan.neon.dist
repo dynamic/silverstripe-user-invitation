@@ -1,0 +1,10 @@
+parameters:
+  level: 4
+  treatPhpDocTypesAsCertain: false
+  paths:
+    - src
+  ignoreErrors:
+    # SilverStripe config properties are read via Config::inst()->get() at runtime
+    # PHPStan doesn't detect this indirect usage pattern
+    -
+      identifier: property.onlyWritten

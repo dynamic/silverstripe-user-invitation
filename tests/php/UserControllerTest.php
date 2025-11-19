@@ -108,7 +108,7 @@ class UserControllerTest extends FunctionalTest
         $joe = $invitation->first();
         $this->assertEquals('Joe', $joe->FirstName);
         $this->assertEquals('joe@example.com', $joe->Email);
-        $this->assertEquals("test1,test2", $joe->Groups);
+        $this->assertEquals('["test1","test2"]', $joe->Groups);
         $this->assertEquals(302, $response->getStatusCode());
     }
 
@@ -158,8 +158,13 @@ class UserControllerTest extends FunctionalTest
             true
         );
         unset($data['Groups']);
-        $form = $this->controller->InvitationForm()->loadDataFrom($data);
-        $this->assertFalse($form->getValidator()->getResult()->isValid());
+        $data['Groups'] = null;
+        // Need to create a new form after config change
+        $newController = new UserController();
+        $form = $newController->InvitationForm()->loadDataFrom($data);
+        $validator = $form->getValidator();
+        $validator->php($data);
+        $this->assertFalse($validator->getResult()->isValid());
     }
 
     private function loginInAsSomeone($name)
@@ -189,7 +194,7 @@ class UserControllerTest extends FunctionalTest
         $this->assertEquals(302, $response->getStatusCode());
         $base = Director::absoluteBaseURL();
         $this->assertEquals(
-            'user/expired',
+            '/user/expired',
             str_replace($base, '', $response->getHeader('Location'))
         );
     }
@@ -222,7 +227,7 @@ class UserControllerTest extends FunctionalTest
         $this->assertEquals(302, $response->getStatusCode());
         $base = Director::absoluteBaseURL();
         $this->assertEquals(
-            'user/notfound',
+            '/user/notfound',
             str_replace($base, '', $response->getHeader('Location'))
         );
     }
@@ -248,7 +253,7 @@ class UserControllerTest extends FunctionalTest
         $this->assertEquals(302, $response->getStatusCode());
         $base = Director::absoluteBaseURL();
         $this->assertEquals(
-            'user/success',
+            '/user/success',
             str_replace($base, '', $response->getHeader('Location'))
         );
 

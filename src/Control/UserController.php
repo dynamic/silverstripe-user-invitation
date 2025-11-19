@@ -27,6 +27,9 @@ use SilverStripe\Security\Security;
 
 class UserController extends Controller implements PermissionProvider
 {
+    /**
+     * @config
+     */
     private static $allowed_actions = [
         'index',
         'accept',
@@ -246,9 +249,9 @@ class UserController extends Controller implements PermissionProvider
     }
 
     /**
-     * @param $data
+     * @param array $data
      * @param Form $form
-     * @return bool|SS_HTTPResponse
+     * @return HTTPResponse
      */
     public function saveInvite($data, Form $form)
     {
@@ -288,7 +291,7 @@ class UserController extends Controller implements PermissionProvider
             return $this->redirect($this->Link('success'));
         } else {
             $form->sessionMessage(
-                Convert::array2json($form->getValidator()->getErrors()),
+                json_encode($form->getValidator()->getErrors()),
                 'bad'
             );
             return $this->redirectBack();
@@ -363,11 +366,12 @@ class UserController extends Controller implements PermissionProvider
             }
             return $this->join_links($url, $action);
         }
+        return '';
     }
 
     /**
      * @param array|string $templates
-     * @param array|\SilverStripe\View\ArrayData $customFields
+     * @param array $customFields
      * @return \SilverStripe\ORM\FieldType\DBHTMLText
      */
     public function renderWithLayout($templates, $customFields = [])
