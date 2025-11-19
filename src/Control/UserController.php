@@ -27,6 +27,9 @@ use SilverStripe\Security\Security;
 
 class UserController extends Controller implements PermissionProvider
 {
+    /**
+     * @config
+     */
     private static $allowed_actions = [
         'index',
         'accept',

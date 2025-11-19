@@ -25,7 +25,7 @@ use SilverStripe\Security\RandomGenerator;
  * @package Dynamic
  * @subpackage UserInvitation
  *
- * @property string $FirstName
+ * @property string $FirstName 
  * @property string $Email
  * @property string $TempHash
  * @property string $Groups
@@ -35,14 +35,21 @@ use SilverStripe\Security\RandomGenerator;
  */
 class UserInvitation extends DataObject
 {
+    /**
+     * @config
+     */
     private static $table_name = "UserInvitation";
 
     /**
      * Used to control whether a group selection on the invitation form is required.
      * @var bool
+     * @config
      */
     private static $force_require_group = false;
 
+    /**
+     * @config
+     */ 
     private static $db = [
         'FirstName' => 'Varchar',
         'Email' => 'Varchar(254)',
@@ -50,10 +57,16 @@ class UserInvitation extends DataObject
         'Groups' => 'Text'
     ];
 
+    /**
+     * @config
+     */
     private static $has_one = [
         'InvitedBy' => Member::class
     ];
 
+    /**
+     * @config
+     */
     private static $indexes = [
         'Email' => true,
         'TempHash' => true

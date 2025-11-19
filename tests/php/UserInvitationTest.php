@@ -98,4 +98,24 @@ class UserInvitationTest extends SapphireTest
         $this->assertNotNull($invite->TempHash);
         $this->assertNotNull($invite->InvitedByID);
     }
+
+    /**
+     * Tests that the invitation URL is correctly generated
+     */
+    public function testGetInvitationLink()
+    {
+        /** @var UserInvitation $joe */
+        $joe = $this->objFromFixture(UserInvitation::class, 'joe');
+        
+        $link = $joe->getInvitationLink();
+        
+        // Should contain the base URL path
+        $this->assertStringContainsString('/user/accept/', $link);
+        
+        // Should contain the TempHash
+        $this->assertStringContainsString($joe->TempHash, $link);
+        
+        // Should be a valid URL format
+        $this->assertMatchesRegularExpression('#^https?://.+/user/accept/[a-f0-9]+$#', $link);
+    }
 }
