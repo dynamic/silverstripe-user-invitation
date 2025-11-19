@@ -12,9 +12,10 @@ use LeKoala\CmsActions\CustomAction;
 use SilverStripe\Control\Controller;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Control\Email\Email;
+use SilverStripe\Core\Validation\ValidationResult;
 use SilverStripe\Forms\ReadonlyField;
+use SilverStripe\Forms\Validation\RequiredFieldsValidator;
 use SilverStripe\Security\Permission;
-use SilverStripe\Forms\RequiredFields;
 use SilverStripe\Forms\CheckboxSetField;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Security\RandomGenerator;
@@ -133,7 +134,7 @@ class UserInvitation extends DataObject
 
     public function getCMSValidator()
     {
-        return new RequiredFields([
+        return RequiredFieldsValidator::create([
             'FirstName',
             'Email'
         ]);
@@ -143,7 +144,7 @@ class UserInvitation extends DataObject
      * Checks if a user invite was already sent, or if a user is already a member
      * @return ValidationResult
      */
-    public function validate()
+    public function validate(): ValidationResult
     {
         $valid = parent::validate();
         $exists = $this->isInDB();

@@ -150,7 +150,7 @@ class UserControllerTest extends FunctionalTest
             'Groups' => ['test1', 'test2']
         ];
         $form = $this->controller->InvitationForm()->loadDataFrom($data);
-        $this->assertTrue($form->validationResult()->isValid());
+        $this->assertTrue($form->getValidator()->getResult()->isValid());
 
         Config::inst()->set(
             UserInvitation::class,
@@ -159,7 +159,7 @@ class UserControllerTest extends FunctionalTest
         );
         unset($data['Groups']);
         $form = $this->controller->InvitationForm()->loadDataFrom($data);
-        $this->assertFalse($form->validationResult()->isValid());
+        $this->assertFalse($form->getValidator()->getResult()->isValid());
     }
 
     private function loginInAsSomeone($name)
