@@ -4,10 +4,6 @@ parameters:
   paths:
     - src
   ignoreErrors:
-    # CmsActions is an optional dependency
-    -
-      message: '#^Instantiated class LeKoala\\CmsActions\\CustomAction not found\.$#'
-      path: src/Model/UserInvitation.php
     # SilverStripe config properties are read via Config::inst()->get() at runtime
     # PHPStan doesn't detect this indirect usage pattern
     -
