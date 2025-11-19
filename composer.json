@@ -19,11 +19,12 @@
         }
     ],
     "require": {
-        "silverstripe/framework": "^4 || ^5",
-        "lekoala/silverstripe-cms-actions": "^1.4"
+        "php": "^8.3",
+        "silverstripe/framework": "^6",
+        "lekoala/silverstripe-cms-actions": "^2.0"
     },
     "require-dev": {
-        "silverstripe/recipe-testing": "^2 || ^3"
+        "silverstripe/recipe-testing": "^4"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

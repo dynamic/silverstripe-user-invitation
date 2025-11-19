@@ -15,17 +15,15 @@ use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\HiddenField;
+use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\Forms\ListboxField;
-use SilverStripe\Forms\RequiredFields;
 use SilverStripe\Forms\TextField;
-use SilverStripe\ORM\ValidationException;
+use SilverStripe\Forms\Validation\RequiredFieldsValidator;
 use SilverStripe\Security\Group;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\PermissionProvider;
 use SilverStripe\Security\Security;
-use SilverStripe\View\SSViewer;
-use SilverStripe\View\ThemeResourceLoader;
 
 class UserController extends Controller implements PermissionProvider
 {
@@ -111,7 +109,7 @@ class UserController extends Controller implements PermissionProvider
                 _t('UserController.SEND_INVITATION', 'Send Invitation')
             )
         );
-        $requiredFields = RequiredFields::create('FirstName', 'Email');
+        $requiredFields = RequiredFieldsValidator::create(['FirstName', 'Email']);
 
         if (UserInvitation::config()->get('force_require_group')) {
             $requiredFields->addRequiredField('Groups');
@@ -146,7 +144,7 @@ class UserController extends Controller implements PermissionProvider
             );
             return $this->redirectBack();
         }
-        if (!$form->validationResult()->isValid()) {
+        if (!$form->getValidator()->getResult()->isValid()) {
             $form->sessionMessage(
                 _t(
                     'UserController.SENT_INVITATION_VALIDATION_FAILED',
@@ -235,7 +233,7 @@ class UserController extends Controller implements PermissionProvider
                 _t('UserController.ACCEPTFORM_REGISTER', 'Register')
             )
         );
-        $requiredFields = RequiredFields::create('FirstName', 'Surname');
+        $requiredFields = RequiredFieldsValidator::create(['FirstName', 'Surname']);
         $form = new Form(
             $this,
             'AcceptForm',
@@ -261,7 +259,7 @@ class UserController extends Controller implements PermissionProvider
         ) {
             return $this->notFoundError();
         }
-        if ($form->validationResult()->isValid()) {
+        if ($form->getValidator()->getResult()->isValid()) {
             $member = Member::create(['Email' => $invite->Email]);
             $form->saveInto($member);
 
@@ -375,23 +373,8 @@ class UserController extends Controller implements PermissionProvider
     public function renderWithLayout($templates, $customFields = [])
     {
         $templates = $this->getLayoutTemplates($templates);
-        $mainTemplates = [\Page::class];
-        $this->extend('updateMainTemplates', $mainTemplates);
 
-        $viewer = new SSViewer($this->getViewerTemplates());
-        $viewer->setTemplateFile(
-            'main',
-            ThemeResourceLoader::inst()->findTemplate($mainTemplates)
-        );
-        $viewer->setTemplateFile(
-            'Layout',
-            ThemeResourceLoader::inst()->findTemplate($templates)
-        );
-
-        //print_r($viewer->templates());
-        return $viewer->process(
-            $this->customise($customFields)
-        );
+        return $this->customise($customFields)->renderWith($templates);
     }
 
     /**
