@@ -193,15 +193,21 @@ class UserInvitation extends DataObject
 
         if ($this->isInDB()) {
             $actions->push(new CustomAction(
-                "doCustomActionSendInvitation", 
-                _t('UserInvitation.SendInvitation', 
-                'Send invitation')
+                "doCustomActionSendInvitation",
+                _t(
+                    'UserInvitation.SendInvitation',
+                    'Send invitation'
+                )
             ));
         } else {
             $actions->push(
-                LiteralField::create('doCustomActionSendInvitationUnavailable', 
-                "<span class=\"bb-align\">" . _t('UserInvitation.CreateSaveBeforeSending', 
-                'Create/Save before sending invite!') . "</span>")
+                LiteralField::create(
+                    'doCustomActionSendInvitationUnavailable',
+                    "<span class=\"bb-align\">" . _t(
+                        'UserInvitation.CreateSaveBeforeSending',
+                        'Create/Save before sending invite!'
+                    ) . "</span>"
+                )
             );
         }
 

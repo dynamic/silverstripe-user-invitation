@@ -373,7 +373,7 @@ class UserController extends Controller implements PermissionProvider
     public function renderWithLayout($templates, $customFields = [])
     {
         $templates = $this->getLayoutTemplates($templates);
-        
+
         return $this->customise($customFields)->renderWith($templates);
     }
 
