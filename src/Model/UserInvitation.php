@@ -25,12 +25,12 @@ use SilverStripe\Security\RandomGenerator;
  * @package Dynamic
  * @subpackage UserInvitation
  *
- * @property string FirstName
- * @property string Email
- * @property string TempHash
- * @property string Groups
- * @property int InvitedByID
- * @property Member InvitedBy
+ * @property string $FirstName
+ * @property string $Email
+ * @property string $TempHash
+ * @property string $Groups
+ * @property int $InvitedByID
+ * @method Member InvitedBy()
  *
  */
 class UserInvitation extends DataObject
@@ -61,7 +61,7 @@ class UserInvitation extends DataObject
 
     /**
      * Removes the hash field from the list.
-     * @return FieldList
+     * @return \SilverStripe\Forms\FieldList
      */
     public function getCMSFields()
     {

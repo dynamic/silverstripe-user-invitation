@@ -42,14 +42,16 @@ class UserInvitationTest extends SapphireTest
     }
 
     /**
-     * Tests that the TempHash field has been removed
+     * Tests that the TempHash field is readonly
      */
     public function testGetCMSFields()
     {
         /** @var UserInvitation $joe */
         $joe = $this->objFromFixture(UserInvitation::class, 'joe');
         $fields = $joe->getCMSFields();
-        $this->assertNull($fields->dataFieldByName('TempHash'));
+        $tempHashField = $fields->dataFieldByName('TempHash');
+        $this->assertNotNull($tempHashField);
+        $this->assertTrue($tempHashField->isReadonly());
         $this->assertNotNull($fields->dataFieldByName('FirstName'));
         $this->assertNotNull($fields->dataFieldByName('Email'));
     }

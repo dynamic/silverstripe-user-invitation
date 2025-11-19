@@ -1,0 +1,18 @@
+parameters:
+  ignoreErrors:
+    # Static properties are read by SilverStripe's config system
+    - '#^Static property .+::\$table_name is never read, only written\.$#'
+    - '#^Static property .+::\$db is never read, only written\.$#'
+    - '#^Static property .+::\$has_one is never read, only written\.$#'
+    - '#^Static property .+::\$indexes is never read, only written\.$#'
+    - '#^Static property .+::\$managed_models is never read, only written\.$#'
+    - '#^Static property .+::\$url_segment is never read, only written\.$#'
+    - '#^Static property .+::\$menu_title is never read, only written\.$#'
+    - '#^Static property .+::\$menu_icon_class is never read, only written\.$#'
+    - '#^Static property .+::\$allowed_actions is never read, only written\.$#'
+    - '#^Static property .+::\$force_require_group is never read, only written\.$#'
+    
+    # CmsActions is an optional dependency
+    -
+      message: '#^Instantiated class LeKoala\\CmsActions\\CustomAction not found\.$#'
+      path: src/Model/UserInvitation.php
