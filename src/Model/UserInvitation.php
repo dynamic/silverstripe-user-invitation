@@ -25,7 +25,7 @@ use SilverStripe\Security\RandomGenerator;
  * @package Dynamic
  * @subpackage UserInvitation
  *
- * @property string $FirstName 
+ * @property string $FirstName
  * @property string $Email
  * @property string $TempHash
  * @property string $Groups
@@ -49,7 +49,7 @@ class UserInvitation extends DataObject
 
     /**
      * @config
-     */ 
+     */
     private static $db = [
         'FirstName' => 'Varchar',
         'Email' => 'Varchar(254)',
