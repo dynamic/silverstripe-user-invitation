@@ -16,6 +16,11 @@
             "name": "Dynamic",
             "email": "dev@dynamicagency.com",
             "homepage": "https://www.dynamicagency.com"
+        },
+        {
+            "name": "Moritz Sauer",
+            "email": "ms@tietge.com",
+            "homepage": "https://www.tietge.com"
         }
     ],
     "require": {
