@@ -86,18 +86,6 @@ Dynamic\SilverStripe\UserInvitations\Control\UserController:
   back_url: '/admin/'
 ```
 
-## Upgrading from 1.x to 2.x
-
-Version 2.0 is compatible with SilverStripe 6. Key changes:
-
-- **PHP 8.3+** required
-- **SilverStripe CMS 6** required
-- Updated dependency: `lekoala/silverstripe-cms-actions` ^2.0
-- Validation classes moved to new namespaces
-- Form validation API updated
-
-Please review the [SilverStripe 6 upgrade guide](https://docs.silverstripe.org/en/6/changelogs/6.0.0/) for detailed information about framework changes.
-
 ## Maintainers
 
  *  [Dynamic](https://www.dynamicagency.com) (<dev@dynamicagency.com>)
