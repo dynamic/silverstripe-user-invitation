@@ -157,7 +157,7 @@ class UserInvitation extends DataObject
             ?: _t(
                 'UserInvitation.EMAIL_SUBJECT',
                 'Invitation from {name}',
-                ['name' => $this->InvitedBy()->FirstName]
+                ['name' => $this->InvitedBy()?->FirstName ?? '']
             );
 
         $email = Email::create()
@@ -171,7 +171,7 @@ class UserInvitation extends DataObject
                 'SiteName'    => $siteConfig->Title,
                 'AcceptLink'  => $this->getInvitationLink(),
                 'InviteeName' => $this->FirstName,
-                'InviterName' => $this->InvitedBy()->FirstName,
+                'InviterName' => $this->InvitedBy()?->FirstName ?? '',
                 'ExpiryDate'  => $this->getExpiryDate(),
                 'ExpiryDays'  => (int) self::config()->get('days_to_expiry'),
             ]);
