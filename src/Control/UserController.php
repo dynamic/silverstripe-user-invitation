@@ -370,15 +370,24 @@ class UserController extends Controller implements PermissionProvider
     }
 
     /**
+     * Render a Layout template wrapped inside the theme's Page.ss shell.
+     *
+     * The Layout template is rendered first (providing the $Layout variable),
+     * then passed into Page.ss which supplies the NavBar, footer, and CSS.
+     *
      * @param array|string $templates
      * @param array $customFields
      * @return \SilverStripe\ORM\FieldType\DBHTMLText
      */
     public function renderWithLayout($templates, $customFields = [])
     {
-        $templates = $this->getLayoutTemplates($templates);
+        $layoutTemplates = $this->getLayoutTemplates($templates);
 
-        return $this->customise($customFields)->renderWith($templates);
+        // Render the inner layout content
+        $layout = $this->customise($customFields)->renderWith($layoutTemplates);
+
+        // Wrap in Page.ss to get NavBar, footer, and theme assets
+        return $this->customise(array_merge($customFields, ['Layout' => $layout]))->renderWith('Page');
     }
 
     /**
