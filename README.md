@@ -105,19 +105,29 @@ Dynamic\SilverStripe\UserInvitations\Model\UserInvitation:
   force_require_group: true
 ```
 
-### Template Override
+### Theme Integration
 
-To update the base template, use `updateMainTemplates`. It defaults to `Page`.
+The accept/registration page (`/user/accept/{hash}`) renders within your project's
+theme using a `Page` fallback. The module's Layout templates are resolved through the
+standard SilverStripe template hierarchy, so you can override any of them in your theme:
 
-```php
-/**
- * @param array $mainTemplates
- */
-public function updateMainTemplates(&$mainTemplates)
-{
-    array_unshift($mainTemplates, 'InvitationPage');
-}
-```
+| Template | Purpose |
+|----------|---------|
+| `Layout/Dynamic/SilverStripe/UserInvitations/Control/UserController.ss` | Invite form (front end) |
+| `Layout/Dynamic/SilverStripe/UserInvitations/Control/UserController_accept.ss` | Registration form |
+| `Layout/Dynamic/SilverStripe/UserInvitations/Control/UserController_success.ss` | Success confirmation |
+| `Layout/Dynamic/SilverStripe/UserInvitations/Control/UserController_expired.ss` | Expired invitation |
+| `Layout/Dynamic/SilverStripe/UserInvitations/Control/UserController_notfound.ss` | Invalid invitation link |
+
+Place overrides in `themes/<your-theme>/templates/` using the same paths. The `Page`
+wrapper (header, navigation, footer, CSS/JS) is provided by your project's `Page.ss`
+automatically — you only need to supply the content area.
+
+> **Note:** The module depends only on `silverstripe/framework` and does not extend
+> `PageController`. Theme resolution is achieved through the `Page` fallback in
+> `renderWithLayout()`. If your project requires deep page-context access (e.g.
+> `$SiteConfig`, `$Navigation`), you can still customise templates without any
+> PHP-level changes.
 
 ### Redirect After Successful User Creation
 
