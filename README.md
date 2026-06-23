@@ -45,15 +45,56 @@ This module enables you to invite users to register on your site. Users can be i
 
 ### Email Configuration
 
-Set an admin email address (used as sender) in your `app/_config/email.yml` file:
+Set a sender address and optional subject override in your `app/_config/email.yml`:
+
+```yml
+# Sender address used for invitation emails.
+# Can be a plain address or an "email: display name" map (Symfony format).
+Dynamic\SilverStripe\UserInvitations\Model\UserInvitation:
+  from_email: 'noreply@example.com'
+  # Uncomment to override the default "Invitation from {name}" subject:
+  # email_subject: 'You have been invited'
+```
+
+If `from_email` is not set, the module falls back to `Email.admin_email`:
 
 ```yml
 SilverStripe\Control\Email\Email:
-  admin_email:
-    mail@example.com: 'Admin at example.com'
+  admin_email: 'noreply@example.com'
 ```
 
+> **Note:** At least one of `UserInvitation.from_email` or `Email.admin_email` must be configured.
+> If neither is set, `sendInvitation()` throws a `RuntimeException`.
+
 For easy email testing, use: https://mailcatcher.me/
+
+### Email Template Override
+
+The invitation email uses two templates: an HTML part and a plain-text fallback.
+
+| Template | Path |
+|----------|------|
+| HTML | `templates/email/UserInvitationEmail.ss` |
+| Plain text | `templates/email/UserInvitationEmail_plain.ss` |
+
+To customise the email appearance, create theme overrides at:
+- `themes/<your-theme>/templates/email/UserInvitationEmail.ss`
+- `themes/<your-theme>/templates/email/UserInvitationEmail_plain.ss`
+
+The following variables are available in both templates:
+
+| Variable | Description |
+|----------|-------------|
+| `$InviteeName` | First name of the person being invited |
+| `$InviterName` | First name of the person who sent the invite |
+| `$SiteName` | Site name from SiteConfig |
+| `$AcceptLink` | Full URL to the invitation acceptance page |
+| `$ExpiryDate` | Human-readable expiry date (e.g. `June 30, 2025`) |
+| `$ExpiryDays` | Number of days until expiry |
+| `$Invite` | The `UserInvitation` DataObject |
+
+> **Note:** Emails render after `Requirements::clear()` — do not rely on theme CSS bundles.
+> Inline all styles in custom email templates.
 
 ### Force Required User Group Assignment
 

@@ -19,6 +19,7 @@ use SilverStripe\Security\Permission;
 use SilverStripe\Forms\CheckboxSetField;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Security\RandomGenerator;
+use SilverStripe\SiteConfig\SiteConfig;
 
 /**
  * Class UserInvitation
@@ -53,6 +54,12 @@ class UserInvitation extends DataObject
      * @config
      */
     private static string $from_email = '';
+
+    /**
+     * Subject line for invitation emails. Falls back to the translatable default when empty.
+     * @config
+     */
+    private static string $email_subject = '';
 
     /**
      * @config
@@ -145,27 +152,45 @@ class UserInvitation extends DataObject
      */
     public function sendInvitation()
     {
+        $siteConfig = SiteConfig::current_site_config();
+        $subject = self::config()->get('email_subject')
+            ?: _t(
+                'UserInvitation.EMAIL_SUBJECT',
+                'Invitation from {name}',
+                ['name' => $this->InvitedBy()->FirstName]
+            );
+
         $email = Email::create()
             ->setFrom($this->resolveFromEmail())
             ->setTo($this->Email)
-            ->setSubject(
-                _t(
-                    'UserInvitation.EMAIL_SUBJECT',
-                    'Invitation from {name}',
-                    ['name' => $this->InvitedBy()->FirstName]
-                )
-            )->setHTMLTemplate('email/UserInvitationEmail')
-            ->setData(
-                [
-                    'Invite' => $this,
-                ]
-            );
+            ->setSubject($subject)
+            ->setHTMLTemplate('email/UserInvitationEmail')
+            ->setPlainTemplate('email/UserInvitationEmail_plain')
+            ->setData([
+                'Invite'      => $this,
+                'SiteName'    => $siteConfig->Title,
+                'AcceptLink'  => $this->getInvitationLink(),
+                'InviteeName' => $this->FirstName,
+                'InviterName' => $this->InvitedBy()->FirstName,
+                'ExpiryDate'  => $this->getExpiryDate(),
+                'ExpiryDays'  => (int) self::config()->get('days_to_expiry'),
+            ]);
 
         $this->extend('updateInvitationEmail', $email);
 
         $email->send();
 
         return $email;
+    }
+
+    /**
+     * Returns the human-readable expiry date for this invitation.
+     */
+    public function getExpiryDate(): string
+    {
+        $days = (int) self::config()->get('days_to_expiry');
+        $expiryTimestamp = strtotime((string) $this->LastEdited) + ($days * 86400);
+        return date('F j, Y', $expiryTimestamp);
     }
 
     public function getCMSValidator()
