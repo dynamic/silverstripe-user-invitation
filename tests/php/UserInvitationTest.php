@@ -4,6 +4,8 @@ namespace Dynamic\SilverStripe\UserInvitations\Tests;
 
 use SilverStripe\Dev\Debug;
 use SilverStripe\Dev\SapphireTest;
+use SilverStripe\Control\Email\Email;
+use SilverStripe\Core\Config\Config;
 use Dynamic\SilverStripe\UserInvitations\Model\UserInvitation;
 
 class UserInvitationTest extends SapphireTest
@@ -16,19 +18,53 @@ class UserInvitationTest extends SapphireTest
     }
 
     /**
-     * Tests that an invitation email was sent.
+     * Tests that sendInvitation() uses UserInvitation.from_email when configured.
      */
-    public function testSendInvitation()
+    public function testSendInvitationUsesFromEmailConfig(): void
     {
-        $this->markTestSkipped();
+        Config::inst()->set(UserInvitation::class, 'from_email', 'invites@example.org');
+        Config::inst()->set(Email::class, 'admin_email', '');
+
+        /** @var UserInvitation $joe */
+        $joe = $this->objFromFixture(UserInvitation::class, 'joe');
+        $sent = $joe->sendInvitation();
+
+        $from = $sent->getFrom();
+        $this->assertCount(1, $from);
+        $this->assertEquals('invites@example.org', $from[0]->getAddress());
+    }
+
+    /**
+     * Tests that sendInvitation() falls back to Email.admin_email when from_email is not set.
+     */
+    public function testSendInvitationFallsBackToAdminEmail(): void
+    {
+        Config::inst()->set(UserInvitation::class, 'from_email', '');
+        Config::inst()->set(Email::class, 'admin_email', 'noreply@example.org');
+
+        /** @var UserInvitation $joe */
+        $joe = $this->objFromFixture(UserInvitation::class, 'joe');
+        $sent = $joe->sendInvitation();
+
+        $from = $sent->getFrom();
+        $this->assertCount(1, $from);
+        $this->assertEquals('noreply@example.org', $from[0]->getAddress());
+    }
+
+    /**
+     * Tests that sendInvitation() throws a RuntimeException when neither address is configured.
+     */
+    public function testSendInvitationThrowsWhenNoFromConfigured(): void
+    {
+        Config::inst()->set(UserInvitation::class, 'from_email', '');
+        Config::inst()->set(Email::class, 'admin_email', '');
+
         /** @var UserInvitation $joe */
         $joe = $this->objFromFixture(UserInvitation::class, 'joe');
 
-        $sent = $joe->sendInvitation();
-        $keys = array_keys($sent->getTo());
-        $this->assertEquals($joe->Email, $keys[0]);
-        $this->assertEquals("Invitation from {$joe->InvitedBy()->FirstName}", $sent->getSubject());
-        $this->assertContains('Click here to accept this invitation', $sent->getBody());
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/from_email.*admin_email/');
+        $joe->sendInvitation();
     }
 
     /**
@@ -106,15 +142,15 @@ class UserInvitationTest extends SapphireTest
     {
         /** @var UserInvitation $joe */
         $joe = $this->objFromFixture(UserInvitation::class, 'joe');
-        
+
         $link = $joe->getInvitationLink();
-        
+
         // Should contain the base URL path
         $this->assertStringContainsString('/user/accept/', $link);
-        
+
         // Should contain the TempHash
         $this->assertStringContainsString($joe->TempHash, $link);
-        
+
         // Should be a valid URL format
         $this->assertMatchesRegularExpression('#^https?://.+/user/accept/[a-f0-9]+$#', $link);
     }

@@ -48,6 +48,13 @@ class UserInvitation extends DataObject
     private static $force_require_group = false;
 
     /**
+     * Sender address for invitation emails. Falls back to Email.admin_email when empty.
+     * If both are empty, sendInvitation() throws a RuntimeException.
+     * @config
+     */
+    private static string $from_email = '';
+
+    /**
      * @config
      */
     private static $db = [
@@ -118,16 +125,32 @@ class UserInvitation extends DataObject
     }
 
     /**
+     * Resolves the From address for invitation emails.
+     * Prefers UserInvitation.from_email, falls back to Email.admin_email.
+     * @throws \RuntimeException if neither config value is set
+     */
+    private function resolveFromEmail(): string
+    {
+        $from = (string)(self::config()->get('from_email') ?: Email::config()->get('admin_email'));
+        if (empty($from)) {
+            throw new \RuntimeException(
+                'UserInvitation: set UserInvitation.from_email or Email.admin_email before sending invitations.'
+            );
+        }
+        return $from;
+    }
+
+    /**
      * Sends an invitation to the desired user
      */
     public function sendInvitation()
     {
         $email = Email::create()
-            ->setFrom(Email::config()->get('admin_email'))
+            ->setFrom($this->resolveFromEmail())
             ->setTo($this->Email)
             ->setSubject(
                 _t(
-                    'UserInvation.EMAIL_SUBJECT',
+                    'UserInvitation.EMAIL_SUBJECT',
                     'Invitation from {name}',
                     ['name' => $this->InvitedBy()->FirstName]
                 )

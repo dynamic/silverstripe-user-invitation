@@ -3,6 +3,7 @@ Name: userinvitationconfig
 ---
 Dynamic\SilverStripe\UserInvitations\Model\UserInvitation:
   days_to_expiry: 2 # Days until an invitation expires
+  from_email: '' # Sender address for invitation emails. Falls back to Email.admin_email when empty.
 
 Dynamic\SilverStripe\UserInvitations\Control\UserController:
   back_url: ''
