@@ -24,8 +24,10 @@ de:
     ACCEPTED_BODY: "Füllen Sie das folgende Formular aus, um Ihre Anmeldung für {name} zu bestätigen"
     EXPIRED_HEADING: "Einladung ist abgelaufen"
     EXPIRED_BODY: "Ups, Sie haben zu lange gebraucht, um diese Einladung anzunehmen."
+    EXPIRED_GUIDANCE: 'Please contact the person who sent the invitation to request a new one.'
     NOTFOUND_HEADING: "Einladung nicht gefunden"
     NOTFOUND_BODY: "Ups, die Einladungs-ID wurde nicht gefunden."
+    NOTFOUND_GUIDANCE: 'The invitation link may be incorrect or has already been used. Please contact the person who sent the invitation for a new link.'
     ACCEPTED_HEADING: "Herzlichen Glückwunsch!"
     ACCEPTED_LOGIN_LINK_TEXT: "Klicken Sie hier, um sich einzuloggen."
     ACCEPTED_BODY_SUCCESS: "Sie sind jetzt ein registriertes Mitglied."
