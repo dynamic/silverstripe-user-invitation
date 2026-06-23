@@ -1,12 +1,7 @@
-<% if $Menu(2) || $SideBarView.Widgets %>
-	<% include SideBar %>
-<% end_if %>
-<div class="col-sm content-container" role="main">
-	<article>
-		<div class="content">
-            <h1><%t UserInvitation.INVITEFORM_HEADING "User Invitation" %></h1>
-            <p><%t UserInvitation.INVITEFORM_BODY "Enter the details of the person you would like to invite below." %></p>
-            $InvitationForm
-        </div>
-	</article>
+<div class="container">
+    <div class="typography">
+        <h1><%t UserInvitation.INVITEFORM_HEADING "User Invitation" %></h1>
+        <p><%t UserInvitation.INVITEFORM_BODY "Enter the details of the person you would like to invite below." %></p>
+    </div>
+    $InvitationForm
 </div>

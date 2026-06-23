@@ -52,6 +52,50 @@ class UserInvitationTest extends SapphireTest
     }
 
     /**
+     * Tests that email_subject config overrides the default subject.
+     */
+    public function testSendInvitationUsesEmailSubjectConfig(): void
+    {
+        Config::inst()->set(Email::class, 'admin_email', 'noreply@example.org');
+        Config::inst()->set(UserInvitation::class, 'email_subject', 'Join us on our platform!');
+
+        /** @var UserInvitation $joe */
+        $joe = $this->objFromFixture(UserInvitation::class, 'joe');
+        $sent = $joe->sendInvitation();
+
+        $this->assertEquals('Join us on our platform!', $sent->getSubject());
+    }
+
+    /**
+     * Tests that sendInvitation() sets a plain-text template alongside the HTML template.
+     */
+    public function testSendInvitationSetsBothTemplates(): void
+    {
+        Config::inst()->set(Email::class, 'admin_email', 'noreply@example.org');
+
+        /** @var UserInvitation $joe */
+        $joe = $this->objFromFixture(UserInvitation::class, 'joe');
+        $sent = $joe->sendInvitation();
+
+        $this->assertEquals('email/UserInvitationEmail', $sent->getHTMLTemplate());
+        $this->assertEquals('email/UserInvitationEmail_plain', $sent->getPlainTemplate());
+    }
+
+    /**
+     * Tests that getExpiryDate() returns a non-empty string.
+     */
+    public function testGetExpiryDate(): void
+    {
+        /** @var UserInvitation $joe */
+        $joe = $this->objFromFixture(UserInvitation::class, 'joe');
+
+        // Should return a non-empty formatted date string
+        $date = $joe->getExpiryDate();
+        $this->assertNotEmpty($date);
+        $this->assertMatchesRegularExpression('/^\w+ \d+, \d{4}$/', $date);
+    }
+
+    /**
      * Tests that sendInvitation() throws a RuntimeException when neither address is configured.
      */
     public function testSendInvitationThrowsWhenNoFromConfigured(): void
