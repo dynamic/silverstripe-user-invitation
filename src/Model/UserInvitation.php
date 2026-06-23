@@ -131,7 +131,7 @@ class UserInvitation extends DataObject
      */
     private function resolveFromEmail(): string
     {
-        $from = self::config()->get('from_email') ?: Email::config()->get('admin_email');
+        $from = (string)(self::config()->get('from_email') ?: Email::config()->get('admin_email'));
         if (empty($from)) {
             throw new \RuntimeException(
                 'UserInvitation: set UserInvitation.from_email or Email.admin_email before sending invitations.'
