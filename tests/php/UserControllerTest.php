@@ -213,6 +213,32 @@ class UserControllerTest extends FunctionalTest
     }
 
     /**
+     * The Password field should carry help text by default, since the site's password
+     * validator is typically strength-based rather than a fixed checklist.
+     */
+    public function testAcceptFormPasswordDescription()
+    {
+        $form = $this->controller->AcceptForm();
+        $passwordField = $form->Fields()->dataFieldByName('Password');
+        $this->assertNotNull($passwordField);
+        $this->assertNotEmpty($passwordField->getDescription());
+    }
+
+    /**
+     * Project config can override or suppress the default password help text.
+     */
+    public function testAcceptFormPasswordDescriptionConfigurable()
+    {
+        Config::modify()->set(UserController::class, 'password_description', 'Custom help text');
+        $passwordField = $this->controller->AcceptForm()->Fields()->dataFieldByName('Password');
+        $this->assertSame('Custom help text', $passwordField->getDescription());
+
+        Config::modify()->set(UserController::class, 'password_description', '');
+        $passwordField = $this->controller->AcceptForm()->Fields()->dataFieldByName('Password');
+        $this->assertEmpty($passwordField->getDescription());
+    }
+
+    /**
      * Tests that redirected to not found if has not found
      */
     public function testSaveInviteWrongHashError()
