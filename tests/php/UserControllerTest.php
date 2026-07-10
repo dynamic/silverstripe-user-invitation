@@ -233,9 +233,22 @@ class UserControllerTest extends FunctionalTest
         $passwordField = $this->controller->AcceptForm()->Fields()->dataFieldByName('Password');
         $this->assertSame('Custom help text', $passwordField->getDescription());
 
+        // A single-character "0" is falsy in PHP but a legitimate configured value; it
+        // must be kept, not silently dropped by a truthiness check.
+        Config::modify()->set(UserController::class, 'password_description', '0');
+        $passwordField = $this->controller->AcceptForm()->Fields()->dataFieldByName('Password');
+        $this->assertSame('0', $passwordField->getDescription());
+
         Config::modify()->set(UserController::class, 'password_description', '');
         $passwordField = $this->controller->AcceptForm()->Fields()->dataFieldByName('Password');
         $this->assertEmpty($passwordField->getDescription());
+
+        // Explicitly setting null is indistinguishable from leaving it unconfigured, so
+        // it falls back to the built-in default rather than suppressing the text - only
+        // an empty string suppresses it. This locks in that documented behavior.
+        Config::modify()->set(UserController::class, 'password_description', null);
+        $passwordField = $this->controller->AcceptForm()->Fields()->dataFieldByName('Password');
+        $this->assertNotEmpty($passwordField->getDescription());
     }
 
     /**

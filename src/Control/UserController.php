@@ -44,8 +44,10 @@ class UserController extends Controller implements PermissionProvider
      * Help text shown under the Password field on AcceptForm. The site's password
      * validator (SilverStripe core's default) is typically strength/entropy-based rather
      * than a fixed character-class checklist, so there's no simple rule ("8 chars + a
-     * number") that reliably predicts a pass. Set to null/empty in project config to
-     * suppress this text entirely.
+     * number") that reliably predicts a pass. Leave unset to use the built-in default
+     * message; set to an empty string in project config to suppress this text entirely.
+     * (Config has no way to distinguish an explicitly-configured null from an unconfigured
+     * value, so null does not suppress it - only an empty string does.)
      *
      * @config
      * @var string|null
@@ -235,7 +237,7 @@ class UserController extends Controller implements PermissionProvider
             'A password manager-generated password or a passphrase of several random words '
             . 'works best. Short or predictable passwords are often rejected even with numbers and symbols.'
         );
-        if ($passwordDescription) {
+        if ($passwordDescription !== '') {
             $passwordField->setDescription($passwordDescription);
         }
 
