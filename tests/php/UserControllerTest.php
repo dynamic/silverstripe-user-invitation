@@ -213,6 +213,45 @@ class UserControllerTest extends FunctionalTest
     }
 
     /**
+     * The Password field should carry help text by default, since the site's password
+     * validator is typically strength-based rather than a fixed checklist.
+     */
+    public function testAcceptFormPasswordDescription()
+    {
+        $form = $this->controller->AcceptForm();
+        $passwordField = $form->Fields()->dataFieldByName('Password');
+        $this->assertNotNull($passwordField);
+        $this->assertNotEmpty($passwordField->getDescription());
+    }
+
+    /**
+     * Project config can override or suppress the default password help text.
+     */
+    public function testAcceptFormPasswordDescriptionConfigurable()
+    {
+        Config::modify()->set(UserController::class, 'password_description', 'Custom help text');
+        $passwordField = $this->controller->AcceptForm()->Fields()->dataFieldByName('Password');
+        $this->assertSame('Custom help text', $passwordField->getDescription());
+
+        // A single-character "0" is falsy in PHP but a legitimate configured value; it
+        // must be kept, not silently dropped by a truthiness check.
+        Config::modify()->set(UserController::class, 'password_description', '0');
+        $passwordField = $this->controller->AcceptForm()->Fields()->dataFieldByName('Password');
+        $this->assertSame('0', $passwordField->getDescription());
+
+        Config::modify()->set(UserController::class, 'password_description', '');
+        $passwordField = $this->controller->AcceptForm()->Fields()->dataFieldByName('Password');
+        $this->assertEmpty($passwordField->getDescription());
+
+        // Explicitly setting null is indistinguishable from leaving it unconfigured, so
+        // it falls back to the built-in default rather than suppressing the text - only
+        // an empty string suppresses it. This locks in that documented behavior.
+        Config::modify()->set(UserController::class, 'password_description', null);
+        $passwordField = $this->controller->AcceptForm()->Fields()->dataFieldByName('Password');
+        $this->assertNotEmpty($passwordField->getDescription());
+    }
+
+    /**
      * Tests that redirected to not found if has not found
      */
     public function testSaveInviteWrongHashError()

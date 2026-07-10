@@ -32,6 +32,7 @@ en:
     SENT_INVITATION: 'An invitation was sent to {email}.'
     ACCEPTFORM_FIRSTNAME: 'First name:'
     ACCEPTFORM_SURNAME: 'Surname:'
+    ACCEPTFORM_PASSWORD_DESCRIPTION: 'A password manager-generated password or a passphrase of several random words works best. Short or predictable passwords are often rejected even with numbers and symbols.'
     ACCEPTFORM_REGISTER: 'Register'
     403_NOTICE: 'You must be logged in to access this page.'
     ACCEPTED_BODY: 'You are now a registered member.'

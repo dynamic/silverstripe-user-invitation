@@ -49,6 +49,7 @@ de:
     SENT_INVITATION: "Eine Einladung wurde an {email} gesendet."
     ACCEPTFORM_FIRSTNAME: "Vorname:"
     ACCEPTFORM_SURNAME: "Nachname:"
+    ACCEPTFORM_PASSWORD_DESCRIPTION: "Ein von einem Passwort-Manager generiertes Passwort oder eine Passphrase aus mehreren zufälligen Wörtern funktioniert am besten. Kurze oder vorhersehbare Passwörter werden oft abgelehnt, selbst mit Zahlen und Symbolen."
     ACCEPTFORM_REGISTER: "Registrieren"
     403_NOTICE: "Sie müssen eingeloggt sein, um auf diese Seite zugreifen zu können."
     ACCEPTED_BODY: "Sie sind jetzt ein registriertes Mitglied."
