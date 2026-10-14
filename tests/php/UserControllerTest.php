@@ -27,19 +27,21 @@ class UserControllerTest extends FunctionalTest
     private $controller;
 
     /**
-     * Theme whose templates stand in for a site theme during module-only test runs.
+     * Theme whose templates stand in for a site theme during test runs.
      *
      * UserController::renderWithLayout() wraps the module's layout template in the theme's
      * `Page` shell. A consuming site gets that from its theme; a plain checkout of this
-     * module has no theme at all, so the shell is registered from tests/fixtures instead of
-     * shipping a `templates/Page.ss` that would leak into every site's template lookup.
+     * module has no theme at all, so a minimal shell is registered from tests/fixtures
+     * instead of shipping a `templates/Page.ss` that would leak into every site's template
+     * lookup.
      */
-    private const TEST_THEME = '/tests/fixtures/TestTheme';
-
     protected function setUp(): void
     {
         parent::setUp();
-        SSViewer::set_themes([self::TEST_THEME, SSViewer::PUBLIC_THEME, SSViewer::DEFAULT_THEME]);
+        // Prepended rather than replacing: a site that runs this module's tests from within
+        // its own project keeps its own themes (and the Page.ss they provide) for
+        // everything the module does not render.
+        SSViewer::set_themes(array_merge([$this->testThemePath()], SSViewer::get_themes()));
         $this->autoFollowRedirection = false;
         $this->logInWithPermission('ADMIN');
         $this->controller = new UserController();
@@ -48,9 +50,28 @@ class UserControllerTest extends FunctionalTest
     protected function tearDown(): void
     {
         // SSViewer::set_themes() overrides a static, so clear it rather than rely on the
-        // next test's setUp() to do it.
+        // next test's setUp() to do it. An empty override makes get_themes() fall back to
+        // the configured themes, i.e. to whatever was in effect before setUp().
         SSViewer::set_themes([]);
         parent::tearDown();
+    }
+
+    /**
+     * Absolute path to the test theme, converted to the root-relative form SSViewer's
+     * theme identifiers expect (see ThemeResourceLoader::getPath()).
+     *
+     * Derived from __DIR__ so it resolves to this module's fixtures both when the module is
+     * checked out as its own project root and when it is installed under vendor/ inside a
+     * site - a hard-coded '/tests/fixtures/...' would only be correct in the first case.
+     */
+    private function testThemePath(): string
+    {
+        $dir = dirname(__DIR__) . '/fixtures/TestTheme';
+        $root = rtrim(BASE_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if (str_starts_with($dir, $root)) {
+            $dir = '/' . str_replace(DIRECTORY_SEPARATOR, '/', substr($dir, strlen($root)));
+        }
+        return $dir;
     }
 
     private function logoutMember()
