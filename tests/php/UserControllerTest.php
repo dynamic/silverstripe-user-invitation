@@ -40,7 +40,7 @@ class UserControllerTest extends FunctionalTest
     protected function setUp(): void
     {
         parent::setUp();
-        // Prepended, not replacing: the fixture shell wins for `Page` and `Layout/Page`, and
+        // Prepended, not replacing: the fixture shell wins for `Page`, and
         // a site running these tests from inside its own project keeps its own themes for
         // every other template. Framework's SSViewerTestState clears the override before each
         // test (framework/_config/tests.yml); this builds on top of that.
