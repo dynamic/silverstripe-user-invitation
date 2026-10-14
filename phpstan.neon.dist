@@ -9,9 +9,11 @@ parameters:
     -
       identifier: property.onlyWritten
 
-    # Same class of false positive, other identifier: PHPStan 2.x split the
-    # "property.onlyWritten" check in two and renamed the "declared type is never
-    # assigned" variant to "property.unusedType", which the entry above does not cover.
+    # The same false positive on a config property, under a second identifier: PHPStan 2.x
+    # reports a property that is never read as "property.onlyWritten" (the entry above) and a
+    # property whose declared type is wider than anything assigned to it as
+    # "property.unusedType" (this one), and both identifiers appear in a single run of
+    # phpstan 2.3.1 over src/, so the entry above cannot cover it.
     # Scoped to the one config property it is about instead of suppressing the check.
     -
       identifier: property.unusedType
