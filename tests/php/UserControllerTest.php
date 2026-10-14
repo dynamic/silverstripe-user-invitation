@@ -436,18 +436,20 @@ class UserControllerTest extends FunctionalTest
     }
 
     /**
-     * The layout renders inside the theme's `Page` shell, not on its own.
+     * A module layout template renders inside the theme's `Page` shell, not on its own.
      */
     public function testRenderWithLayout()
     {
-        $render = $this->controller->renderWithLayout([]);
+        // Render one of the module's own layout templates rather than an empty list, so the
+        // assertion has module markup to look for.
+        $render = $this->controller->renderWithLayout(UserController::class);
         $this->assertInstanceOf(DBHTMLText::class, $render);
-        // The shell comes from the theme, the layout from the module: both must be present,
-        // in that order, for the wrap to have happened.
+        // The layout comes from the module (Layout/UserController.ss), the shell from the
+        // theme: the module's heading must sit inside the shell's <body> element.
         $this->assertMatchesRegularExpression(
-            '/<body>.*<\/body>/s',
+            '/<body>.*User Invitation.*<\/body>/s',
             (string)$render,
-            'The theme shell did not wrap the layout'
+            'The module layout did not render inside the theme shell'
         );
     }
 

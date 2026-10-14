@@ -83,15 +83,13 @@ class UserInvitationTest extends SapphireTest
     }
 
     /**
-     * Tests that getExpiryDate() returns a non-empty string.
-     */
-    /**
      * An invitation with no InvitedBy still sends, with a blank inviter name.
      *
-     * This also pins the semantics that sendInvitation() relies on: a has_one accessor on a
+     * This pins the semantics that sendInvitation()'s `->` relies on: a has_one accessor on a
      * typed (non-polymorphic) relation returns an empty Member rather than null when the
-     * relation is empty - DataObject::getComponent() creates one. If that ever changes, this
-     * test fails here instead of the subject line blowing up in production.
+     * relation is empty, because DataObject::getComponent() creates one. The `?? ''` would
+     * quietly cover a null receiver, so without the explicit assertInstanceOf() here the
+     * subject line would keep working even if the ORM's behaviour changed underneath it.
      */
     public function testSendInvitationWithoutInvitedBy(): void
     {
@@ -114,11 +112,12 @@ class UserInvitationTest extends SapphireTest
         $sent = $invite->sendInvitation();
 
         $this->assertStringContainsString('Invitation from', $sent->getSubject());
-        $data = $sent->getData();
-        $inviterName = is_array($data) ? $data['InviterName'] : $data->toMap()['InviterName'];
-        $this->assertSame('', $inviterName);
+        $this->assertSame('', $sent->getData()->InviterName);
     }
 
+    /**
+     * Tests that getExpiryDate() returns a non-empty string.
+     */
     public function testGetExpiryDate(): void
     {
         /** @var UserInvitation $joe */
