@@ -13,6 +13,7 @@ use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\FunctionalTest;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\FieldType\DBHTMLText;
+use SilverStripe\View\SSViewer;
 use Dynamic\SilverStripe\UserInvitations\Model\UserInvitation;
 use Dynamic\SilverStripe\UserInvitations\Control\UserController;
 
@@ -25,12 +26,31 @@ class UserControllerTest extends FunctionalTest
      */
     private $controller;
 
+    /**
+     * Theme whose templates stand in for a site theme during module-only test runs.
+     *
+     * UserController::renderWithLayout() wraps the module's layout template in the theme's
+     * `Page` shell. A consuming site gets that from its theme; a plain checkout of this
+     * module has no theme at all, so the shell is registered from tests/fixtures instead of
+     * shipping a `templates/Page.ss` that would leak into every site's template lookup.
+     */
+    private const TEST_THEME = '/tests/fixtures/TestTheme';
+
     protected function setUp(): void
     {
         parent::setUp();
+        SSViewer::set_themes([self::TEST_THEME, SSViewer::PUBLIC_THEME, SSViewer::DEFAULT_THEME]);
         $this->autoFollowRedirection = false;
         $this->logInWithPermission('ADMIN');
         $this->controller = new UserController();
+    }
+
+    protected function tearDown(): void
+    {
+        // SSViewer::set_themes() overrides a static, so clear it rather than rely on the
+        // next test's setUp() to do it.
+        SSViewer::set_themes([]);
+        parent::tearDown();
     }
 
     private function logoutMember()

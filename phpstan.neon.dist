@@ -8,3 +8,20 @@ parameters:
     # PHPStan doesn't detect this indirect usage pattern
     -
       identifier: property.onlyWritten
+
+    # Same class of false positive, other identifier: PHPStan 2.x split the
+    # "property.onlyWritten" check in two and renamed the "declared type is never
+    # assigned" variant to "property.unusedType", which the entry above does not cover.
+    # Scoped to the one config property it is about instead of suppressing the check.
+    -
+      identifier: property.unusedType
+      message: '#UserController::\$password_description \(string\|null\) is never assigned string#'
+
+    # SilverStan types a has_one accessor as the related class itself, but the accessor
+    # returns null at runtime when the relation is empty (InvitedByID is not required), so
+    # the null-safe operator here is load-bearing even though PHPStan believes the receiver
+    # can never be null. Scoped to the two InvitedBy() usages.
+    -
+      identifier: nullsafe.neverNull
+      path: src/Model/UserInvitation.php
+      message: '#Using nullsafe property access "\?->FirstName" on left side of \?\? is unnecessary#'
