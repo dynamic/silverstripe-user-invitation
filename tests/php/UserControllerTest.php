@@ -27,6 +27,13 @@ class UserControllerTest extends FunctionalTest
     private $controller;
 
     /**
+     * The theme list in effect before setUp() prepended the test theme.
+     *
+     * @var string[]
+     */
+    private array $originalThemes = [];
+
+    /**
      * Theme whose templates stand in for a site theme during test runs.
      *
      * UserController::renderWithLayout() wraps the module's layout template in the theme's
@@ -38,10 +45,11 @@ class UserControllerTest extends FunctionalTest
     protected function setUp(): void
     {
         parent::setUp();
+        $this->originalThemes = SSViewer::get_themes();
         // Prepended rather than replacing: a site that runs this module's tests from within
         // its own project keeps its own themes (and the Page.ss they provide) for
         // everything the module does not render.
-        SSViewer::set_themes(array_merge([$this->testThemePath()], SSViewer::get_themes()));
+        SSViewer::set_themes(array_merge([$this->testThemePath()], $this->originalThemes));
         $this->autoFollowRedirection = false;
         $this->logInWithPermission('ADMIN');
         $this->controller = new UserController();
@@ -49,10 +57,10 @@ class UserControllerTest extends FunctionalTest
 
     protected function tearDown(): void
     {
-        // SSViewer::set_themes() overrides a static, so clear it rather than rely on the
-        // next test's setUp() to do it. An empty override makes get_themes() fall back to
-        // the configured themes, i.e. to whatever was in effect before setUp().
-        SSViewer::set_themes([]);
+        // SSViewer::set_themes() overrides a static, so put back the list setUp() found
+        // rather than clearing the override: a host project that set themes at runtime has
+        // no config fallback to return to once the override is cleared.
+        SSViewer::set_themes($this->originalThemes);
         parent::tearDown();
     }
 
