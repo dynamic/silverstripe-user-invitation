@@ -6,6 +6,7 @@ use SilverStripe\Dev\Debug;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Control\Email\Email;
 use SilverStripe\Core\Config\Config;
+use SilverStripe\Security\Member;
 use Dynamic\SilverStripe\UserInvitations\Model\UserInvitation;
 
 class UserInvitationTest extends SapphireTest
@@ -84,6 +85,40 @@ class UserInvitationTest extends SapphireTest
     /**
      * Tests that getExpiryDate() returns a non-empty string.
      */
+    /**
+     * An invitation with no InvitedBy still sends, with a blank inviter name.
+     *
+     * This also pins the semantics that sendInvitation() relies on: a has_one accessor on a
+     * typed (non-polymorphic) relation returns an empty Member rather than null when the
+     * relation is empty - DataObject::getComponent() creates one. If that ever changes, this
+     * test fails here instead of the subject line blowing up in production.
+     */
+    public function testSendInvitationWithoutInvitedBy(): void
+    {
+        Config::inst()->set(UserInvitation::class, 'from_email', 'invites@example.org');
+        Config::inst()->set(Email::class, 'admin_email', '');
+
+        $invite = UserInvitation::create([
+            'FirstName' => 'NoInviter',
+            'Email' => 'noinviter@example.org'
+        ]);
+        $invite->write();
+        // Write again with an explicitly empty relation: onBeforeWrite() only fills
+        // InvitedByID for a brand-new record, so this is what an invitation with no inviter
+        // looks like.
+        $invite->InvitedByID = 0;
+        $invite->write();
+        $this->assertSame(0, (int)$invite->InvitedByID);
+        $this->assertInstanceOf(Member::class, $invite->InvitedBy());
+
+        $sent = $invite->sendInvitation();
+
+        $this->assertStringContainsString('Invitation from', $sent->getSubject());
+        $data = $sent->getData();
+        $inviterName = is_array($data) ? $data['InviterName'] : $data->toMap()['InviterName'];
+        $this->assertSame('', $inviterName);
+    }
+
     public function testGetExpiryDate(): void
     {
         /** @var UserInvitation $joe */

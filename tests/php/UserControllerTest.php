@@ -14,6 +14,8 @@ use SilverStripe\Dev\FunctionalTest;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\FieldType\DBHTMLText;
 use SilverStripe\View\SSViewer;
+use SilverStripe\Core\Manifest\ModuleLoader;
+use SilverStripe\Core\Path;
 use Dynamic\SilverStripe\UserInvitations\Model\UserInvitation;
 use Dynamic\SilverStripe\UserInvitations\Control\UserController;
 
@@ -27,13 +29,6 @@ class UserControllerTest extends FunctionalTest
     private $controller;
 
     /**
-     * The theme list in effect before setUp() prepended the test theme.
-     *
-     * @var string[]
-     */
-    private array $originalThemes = [];
-
-    /**
      * Theme whose templates stand in for a site theme during test runs.
      *
      * UserController::renderWithLayout() wraps the module's layout template in the theme's
@@ -45,11 +40,11 @@ class UserControllerTest extends FunctionalTest
     protected function setUp(): void
     {
         parent::setUp();
-        $this->originalThemes = SSViewer::get_themes();
-        // Prepended rather than replacing: a site that runs this module's tests from within
-        // its own project keeps its own themes (and the Page.ss they provide) for
-        // everything the module does not render.
-        SSViewer::set_themes(array_merge([$this->testThemePath()], $this->originalThemes));
+        // Prepended, not replacing: the fixture shell wins for `Page` and `Layout/Page`, and
+        // a site running these tests from inside its own project keeps its own themes for
+        // every other template. Framework's SSViewerTestState clears the override before each
+        // test (framework/_config/tests.yml); this builds on top of that.
+        SSViewer::set_themes(array_merge([$this->testThemePath()], SSViewer::get_themes()));
         $this->autoFollowRedirection = false;
         $this->logInWithPermission('ADMIN');
         $this->controller = new UserController();
@@ -57,29 +52,34 @@ class UserControllerTest extends FunctionalTest
 
     protected function tearDown(): void
     {
-        // SSViewer::set_themes() overrides a static, so put back the list setUp() found
-        // rather than clearing the override: a host project that set themes at runtime has
-        // no config fallback to return to once the override is cleared.
-        SSViewer::set_themes($this->originalThemes);
+        // SSViewer::set_themes() sets a static. SapphireTest's own state reset clears it
+        // again before the next test; clearing it here too keeps this class from leaving a
+        // theme override behind for anything else in the same process.
+        SSViewer::set_themes([]);
         parent::tearDown();
     }
 
     /**
-     * Absolute path to the test theme, converted to the root-relative form SSViewer's
-     * theme identifiers expect (see ThemeResourceLoader::getPath()).
+     * Path to the test theme, in the root-relative form SSViewer's theme identifiers expect
+     * (see ThemeResourceLoader::getPath()).
      *
-     * Derived from __DIR__ so it resolves to this module's fixtures both when the module is
-     * checked out as its own project root and when it is installed under vendor/ inside a
-     * site - a hard-coded '/tests/fixtures/...' would only be correct in the first case.
+     * Derived from the module manifest rather than __DIR__, so it resolves to this module's
+     * fixtures whether the module is checked out as its own project root, copied under
+     * vendor/ inside a site, or symlinked there by a composer path repository - a hard-coded
+     * '/tests/fixtures/...' would only be correct in the first case, and __DIR__ resolves
+     * symlinks, which can land outside BASE_PATH and produce an identifier that points at
+     * nothing. Fails loudly rather than returning such an identifier silently.
      */
     private function testThemePath(): string
     {
-        $dir = dirname(__DIR__) . '/fixtures/TestTheme';
-        $root = rtrim(BASE_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        if (str_starts_with($dir, $root)) {
-            $dir = '/' . str_replace(DIRECTORY_SEPARATOR, '/', substr($dir, strlen($root)));
+        $module = ModuleLoader::inst()->getManifest()->getModule('dynamic/silverstripe-user-invitation');
+        if (!$module) {
+            $this->fail(
+                'The test theme could not be registered: this module is not in the module '
+                . 'manifest, so its tests/fixtures/TestTheme has no path from the project root.'
+            );
         }
-        return $dir;
+        return '/' . ltrim(Path::join((string)$module->getRelativePath(), 'tests/fixtures/TestTheme'), '/');
     }
 
     private function logoutMember()
@@ -436,12 +436,19 @@ class UserControllerTest extends FunctionalTest
     }
 
     /**
-     *
+     * The layout renders inside the theme's `Page` shell, not on its own.
      */
     public function testRenderWithLayout()
     {
         $render = $this->controller->renderWithLayout([]);
         $this->assertInstanceOf(DBHTMLText::class, $render);
+        // The shell comes from the theme, the layout from the module: both must be present,
+        // in that order, for the wrap to have happened.
+        $this->assertMatchesRegularExpression(
+            '/<body>.*<\/body>/s',
+            (string)$render,
+            'The theme shell did not wrap the layout'
+        );
     }
 
     /**
