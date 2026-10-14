@@ -6,6 +6,7 @@ use SilverStripe\Dev\Debug;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Control\Email\Email;
 use SilverStripe\Core\Config\Config;
+use SilverStripe\Security\Member;
 use Dynamic\SilverStripe\UserInvitations\Model\UserInvitation;
 
 class UserInvitationTest extends SapphireTest
@@ -79,6 +80,39 @@ class UserInvitationTest extends SapphireTest
 
         $this->assertEquals('email/UserInvitationEmail', $sent->getHTMLTemplate());
         $this->assertEquals('email/UserInvitationEmail_plain', $sent->getPlainTemplate());
+    }
+
+    /**
+     * An invitation with no InvitedBy still sends, with a blank inviter name.
+     *
+     * This pins the semantics that sendInvitation()'s `->` relies on: a has_one accessor on a
+     * typed (non-polymorphic) relation returns an empty Member rather than null when the
+     * relation is empty, because DataObject::getComponent() creates one. The `?? ''` would
+     * quietly cover a null receiver, so without the explicit assertInstanceOf() here the
+     * subject line would keep working even if the ORM's behaviour changed underneath it.
+     */
+    public function testSendInvitationWithoutInvitedBy(): void
+    {
+        Config::inst()->set(UserInvitation::class, 'from_email', 'invites@example.org');
+        Config::inst()->set(Email::class, 'admin_email', '');
+
+        $invite = UserInvitation::create([
+            'FirstName' => 'NoInviter',
+            'Email' => 'noinviter@example.org'
+        ]);
+        $invite->write();
+        // Write again with an explicitly empty relation: onBeforeWrite() only fills
+        // InvitedByID for a brand-new record, so this is what an invitation with no inviter
+        // looks like.
+        $invite->InvitedByID = 0;
+        $invite->write();
+        $this->assertSame(0, (int)$invite->InvitedByID);
+        $this->assertInstanceOf(Member::class, $invite->InvitedBy());
+
+        $sent = $invite->sendInvitation();
+
+        $this->assertStringContainsString('Invitation from', $sent->getSubject());
+        $this->assertSame('', $sent->getData()->InviterName);
     }
 
     /**

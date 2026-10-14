@@ -13,6 +13,9 @@ use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\FunctionalTest;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\FieldType\DBHTMLText;
+use SilverStripe\View\SSViewer;
+use SilverStripe\Core\Manifest\ModuleLoader;
+use SilverStripe\Core\Path;
 use Dynamic\SilverStripe\UserInvitations\Model\UserInvitation;
 use Dynamic\SilverStripe\UserInvitations\Control\UserController;
 
@@ -25,12 +28,58 @@ class UserControllerTest extends FunctionalTest
      */
     private $controller;
 
+    /**
+     * Theme whose templates stand in for a site theme during test runs.
+     *
+     * UserController::renderWithLayout() wraps the module's layout template in the theme's
+     * `Page` shell. A consuming site gets that from its theme; a plain checkout of this
+     * module has no theme at all, so a minimal shell is registered from tests/fixtures
+     * instead of shipping a `templates/Page.ss` that would leak into every site's template
+     * lookup.
+     */
     protected function setUp(): void
     {
         parent::setUp();
+        // Prepended, not replacing: the fixture shell wins for `Page`, and
+        // a site running these tests from inside its own project keeps its own themes for
+        // every other template. Framework's SSViewerTestState clears the override before each
+        // test (framework/_config/tests.yml); this builds on top of that.
+        SSViewer::set_themes(array_merge([$this->testThemePath()], SSViewer::get_themes()));
         $this->autoFollowRedirection = false;
         $this->logInWithPermission('ADMIN');
         $this->controller = new UserController();
+    }
+
+    protected function tearDown(): void
+    {
+        // SSViewer::set_themes() sets a static. SapphireTest's own state reset clears it
+        // again before the next test; clearing it here too keeps this class from leaving a
+        // theme override behind for anything else in the same process.
+        SSViewer::set_themes([]);
+        parent::tearDown();
+    }
+
+    /**
+     * Path to the test theme, in the root-relative form SSViewer's theme identifiers expect
+     * (see ThemeResourceLoader::getPath()).
+     *
+     * Derived from the module manifest rather than __DIR__, so it resolves to this module's
+     * fixtures whether the module is checked out as its own project root, copied under
+     * vendor/ inside a site, or symlinked there by a composer path repository - a hard-coded
+     * '/tests/fixtures/...' would only be correct in the first case, and __DIR__ resolves
+     * symlinks, which can land outside BASE_PATH and produce an identifier that points at
+     * nothing. Fails loudly rather than returning such an identifier silently.
+     */
+    private function testThemePath(): string
+    {
+        $module = ModuleLoader::inst()->getManifest()->getModule('dynamic/silverstripe-user-invitation');
+        if (!$module) {
+            $this->fail(
+                'The test theme could not be registered: this module is not in the module '
+                . 'manifest, so its tests/fixtures/TestTheme has no path from the project root.'
+            );
+        }
+        return '/' . ltrim(Path::join((string)$module->getRelativePath(), 'tests/fixtures/TestTheme'), '/');
     }
 
     private function logoutMember()
@@ -387,12 +436,21 @@ class UserControllerTest extends FunctionalTest
     }
 
     /**
-     *
+     * A module layout template renders inside the theme's `Page` shell, not on its own.
      */
     public function testRenderWithLayout()
     {
-        $render = $this->controller->renderWithLayout([]);
+        // Render one of the module's own layout templates rather than an empty list, so the
+        // assertion has module markup to look for.
+        $render = $this->controller->renderWithLayout(UserController::class);
         $this->assertInstanceOf(DBHTMLText::class, $render);
+        // The layout comes from the module (Layout/UserController.ss), the shell from the
+        // theme: the module's heading must sit inside the shell's <body> element.
+        $this->assertMatchesRegularExpression(
+            '/<body>.*User Invitation.*<\/body>/s',
+            (string)$render,
+            'The module layout did not render inside the theme shell'
+        );
     }
 
     /**
