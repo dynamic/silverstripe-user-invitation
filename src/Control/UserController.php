@@ -206,16 +206,9 @@ class UserController extends Controller implements PermissionProvider
         if (!$hash = $this->getRequest()->param('ID')) {
             return $this->forbiddenError();
         }
-        if ($invite = UserInvitation::get()->filter(
-            'TempHash',
-            $hash
-        )->first()
-        ) {
-            if ($invite->isExpired()) {
-                return $this->redirect($this->Link('expired'));
-            }
-        } else {
-            return $this->redirect($this->Link('notfound'));
+        $invite = $this->resolveInvitation($hash);
+        if (!$invite instanceof UserInvitation) {
+            return $invite;
         }
         return $this->renderWithLayout([
             static::class . '_accept',
@@ -228,7 +221,13 @@ class UserController extends Controller implements PermissionProvider
     public function AcceptForm()
     {
         $hash = $this->getRequest()->param('ID');
-        $invite = UserInvitation::get()->filter('TempHash', $hash)->first();
+        // An unknown or expired invitation must not populate the form. The form itself stays
+        // constructible and produces no redirect of its own, because SilverStripe rebuilds it
+        // for the saveInvite() POST; accept() and saveInvite() own the response behaviour.
+        $invite = $this->findInvitation($hash);
+        if ($invite && $invite->isExpired()) {
+            $invite = null;
+        }
         $firstName = ($invite) ? $invite->FirstName : '';
 
         $passwordField = ConfirmedPasswordField::create('Password');
@@ -279,12 +278,9 @@ class UserController extends Controller implements PermissionProvider
      */
     public function saveInvite($data, Form $form)
     {
-        if (!$invite = UserInvitation::get()->filter(
-            'TempHash',
-            $data['HashID']
-        )->first()
-        ) {
-            return $this->notFoundError();
+        $invite = $this->resolveInvitation($data['HashID'] ?? null);
+        if (!$invite instanceof UserInvitation) {
+            return $invite;
         }
         if ($form->getValidator()->getResult()->isValid()) {
             $member = Member::create(['Email' => $invite->Email]);
@@ -368,6 +364,45 @@ class UserController extends Controller implements PermissionProvider
     private function notFoundError()
     {
         return $this->redirect($this->Link('notfound'));
+    }
+
+    /**
+     * Look up the invitation an accept-link hash refers to, without judging whether it may
+     * still be used.
+     *
+     * @param mixed $hash The TempHash carried by the accept link or the accept form. Anything
+     * that is not a usable string simply resolves to no invitation.
+     * @return UserInvitation|null
+     */
+    private function findInvitation(mixed $hash): ?UserInvitation
+    {
+        if (!is_string($hash) || $hash === '') {
+            return null;
+        }
+        return UserInvitation::get()->filter('TempHash', $hash)->first();
+    }
+
+    /**
+     * Resolve the invitation an accept-link hash refers to.
+     *
+     * Shared by accept() and saveInvite() so the two cannot drift apart on when an
+     * invitation counts as usable.
+     *
+     * @param mixed $hash The TempHash carried by the accept link or the accept form
+     * @return UserInvitation|HTTPResponse The invitation, or the response this request has
+     * to return instead: a redirect to the notfound page for an unknown hash, or to the
+     * expired page once the invitation has expired.
+     */
+    private function resolveInvitation(mixed $hash): UserInvitation|HTTPResponse
+    {
+        $invite = $this->findInvitation($hash);
+        if (!$invite) {
+            return $this->notFoundError();
+        }
+        if ($invite->isExpired()) {
+            return $this->redirect($this->Link('expired'));
+        }
+        return $invite;
     }
 
     /**

@@ -3,6 +3,8 @@
 namespace Dynamic\SilverStripe\UserInvitations\Tests;
 
 use SilverStripe\Control\Email\Email;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\Session;
 use SilverStripe\Forms\Form;
 use SilverStripe\Core\Convert;
 use SilverStripe\Security\Group;
@@ -365,6 +367,180 @@ class UserControllerTest extends FunctionalTest
             Group::class,
             'test2'
         )));
+    }
+
+    /**
+     * Regression test: posting the accept form with an expired invitation must not create
+     * a Member nor delete the invitation - it redirects to the expired page instead.
+     */
+    public function testSaveInviteExpired()
+    {
+        /** @var UserInvitation $invitation */
+        $invitation = $this->objFromFixture(UserInvitation::class, 'expired');
+        $this->assertTrue($invitation->isExpired());
+        $data = [
+            'HashID' => $invitation->TempHash,
+            'FirstName' => $invitation->FirstName,
+            'Surname' => 'Poke',
+            'Password' => [
+                '_Password' => 'password',
+                '_ConfirmPassword' => 'password'
+            ]
+        ];
+
+        $response = $this->controller->saveInvite(
+            $data,
+            $this->controller->AcceptForm()->loadDataFrom($data)
+        );
+
+        $this->assertEquals(302, $response->getStatusCode());
+        $base = Director::absoluteBaseURL();
+        $this->assertEquals(
+            '/user/expired',
+            str_replace($base, '', $response->getHeader('Location'))
+        );
+
+        // No account may have been created from the expired invitation
+        $this->assertNull(Member::get()->filter('Email', $invitation->Email)->first());
+
+        // The invitation is left in place
+        $this->assertNotNull(UserInvitation::get()->filter(
+            'TempHash',
+            $invitation->TempHash
+        )->first());
+    }
+
+    /**
+     * A missing, empty or non-string HashID is a clean "not found" redirect, never a fatal,
+     * and never creates a Member.
+     */
+    public function testSaveInviteBadHashInput()
+    {
+        $base = Director::absoluteBaseURL();
+        $memberCount = Member::get()->count();
+        $cases = [
+            'missing hash' => [],
+            'empty hash' => ['HashID' => ''],
+            'array hash' => ['HashID' => ['nope', 'still-nope']],
+            'unknown hash' => ['HashID' => 'no-such-hash'],
+        ];
+        foreach ($cases as $label => $data) {
+            // A fresh controller per case, so a redirect from one case cannot carry over
+            // to the next one's response object.
+            $controller = new UserController();
+            $response = $controller->saveInvite(
+                $data,
+                $controller->AcceptForm()->loadDataFrom($data)
+            );
+            $this->assertEquals(302, $response->getStatusCode(), $label);
+            $this->assertEquals(
+                '/user/notfound',
+                str_replace($base, '', $response->getHeader('Location')),
+                $label
+            );
+        }
+        $this->assertEquals($memberCount, Member::get()->count());
+    }
+
+    /**
+     * The reported attack, end to end through the real form dispatch (no direct call to
+     * saveInvite()): a form that was rendered while an invitation was still valid, submitted
+     * with an expired invitation's hash.
+     */
+    public function testExpiredInviteRejectedOnFormSubmit()
+    {
+        /** @var UserInvitation $expired */
+        $expired = $this->objFromFixture(UserInvitation::class, 'expired');
+        /** @var UserInvitation $valid */
+        $valid = $this->objFromFixture(UserInvitation::class, 'joe');
+        $base = Director::absoluteBaseURL();
+
+        // The accept page, and with it the accept form, renders for a valid invitation.
+        $page = $this->get($this->controller->Link('accept/' . $valid->TempHash));
+        $this->assertEquals(200, $page->getStatusCode());
+
+        $response = $this->post($this->controller->Link('AcceptForm'), [
+            'action_saveInvite' => 'Register',
+            'HashID' => $expired->TempHash,
+            'FirstName' => 'Slow',
+            'Surname' => 'Poke',
+            'Password' => [
+                '_Password' => 'password',
+                '_ConfirmPassword' => 'password'
+            ]
+        ]);
+
+        $this->assertEquals(302, $response->getStatusCode());
+        $this->assertEquals(
+            '/user/expired',
+            str_replace($base, '', $response->getHeader('Location'))
+        );
+        $this->assertNull(Member::get()->filter('Email', $expired->Email)->first());
+        $this->assertNotNull(UserInvitation::get()->filter(
+            'TempHash',
+            $expired->TempHash
+        )->first());
+
+        // The untouched flow still registers through the same dispatch.
+        $ok = $this->post($this->controller->Link('AcceptForm'), [
+            'action_saveInvite' => 'Register',
+            'HashID' => $valid->TempHash,
+            'FirstName' => 'Joe',
+            'Surname' => 'Soap',
+            'Password' => [
+                '_Password' => 'password',
+                '_ConfirmPassword' => 'password'
+            ]
+        ]);
+        $this->assertEquals(302, $ok->getStatusCode());
+        $this->assertEquals(
+            '/user/success',
+            str_replace($base, '', $ok->getHeader('Location'))
+        );
+        $this->assertNotNull(Member::get()->filter('Email', $valid->Email)->first());
+    }
+
+    /**
+     * The accept form must not be populated from an expired invitation.
+     */
+    public function testAcceptFormIgnoresExpiredInvite()
+    {
+        /** @var UserInvitation $invitation */
+        $invitation = $this->objFromFixture(UserInvitation::class, 'expired');
+        $this->setAcceptRequest($invitation->TempHash);
+
+        $firstName = $this->controller->AcceptForm()->Fields()->dataFieldByName('FirstName');
+        $this->assertNotNull($firstName);
+        $this->assertEquals('', $firstName->getValue());
+    }
+
+    /**
+     * The accept form is still populated for a valid, unexpired invitation.
+     */
+    public function testAcceptFormPopulatesValidInvite()
+    {
+        /** @var UserInvitation $invitation */
+        $invitation = $this->objFromFixture(UserInvitation::class, 'joe');
+        $this->setAcceptRequest($invitation->TempHash);
+
+        $firstName = $this->controller->AcceptForm()->Fields()->dataFieldByName('FirstName');
+        $this->assertNotNull($firstName);
+        $this->assertEquals('Joe', $firstName->getValue());
+    }
+
+    /**
+     * Point the controller at an accept request for the given invitation hash, so that
+     * AcceptForm() resolves the invitation the same way it does on the accept route.
+     *
+     * @param string|null $hash
+     * @return void
+     */
+    private function setAcceptRequest($hash)
+    {
+        $request = new HTTPRequest('GET', $this->controller->Link('accept') . '/' . $hash, []);
+        $request->setSession(new Session([]));
+        $request->setRouteParams(['Action' => 'accept', 'ID' => $hash]);
+        $this->controller->setRequest($request);
     }
 
     /**
