@@ -443,6 +443,64 @@ class UserControllerTest extends FunctionalTest
     }
 
     /**
+     * The reported attack, end to end through the real form dispatch (no direct call to
+     * saveInvite()): a form that was rendered while an invitation was still valid, submitted
+     * with an expired invitation's hash.
+     */
+    public function testExpiredInviteRejectedOnFormSubmit()
+    {
+        /** @var UserInvitation $expired */
+        $expired = $this->objFromFixture(UserInvitation::class, 'expired');
+        /** @var UserInvitation $valid */
+        $valid = $this->objFromFixture(UserInvitation::class, 'joe');
+        $base = Director::absoluteBaseURL();
+
+        // The accept page, and with it the accept form, renders for a valid invitation.
+        $page = $this->get($this->controller->Link('accept/' . $valid->TempHash));
+        $this->assertEquals(200, $page->getStatusCode());
+
+        $response = $this->post($this->controller->Link('AcceptForm'), [
+            'action_saveInvite' => 'Register',
+            'HashID' => $expired->TempHash,
+            'FirstName' => 'Slow',
+            'Surname' => 'Poke',
+            'Password' => [
+                '_Password' => 'password',
+                '_ConfirmPassword' => 'password'
+            ]
+        ]);
+
+        $this->assertEquals(302, $response->getStatusCode());
+        $this->assertEquals(
+            '/user/expired',
+            str_replace($base, '', $response->getHeader('Location'))
+        );
+        $this->assertNull(Member::get()->filter('Email', $expired->Email)->first());
+        $this->assertNotNull(UserInvitation::get()->filter(
+            'TempHash',
+            $expired->TempHash
+        )->first());
+
+        // The untouched flow still registers through the same dispatch.
+        $ok = $this->post($this->controller->Link('AcceptForm'), [
+            'action_saveInvite' => 'Register',
+            'HashID' => $valid->TempHash,
+            'FirstName' => 'Joe',
+            'Surname' => 'Soap',
+            'Password' => [
+                '_Password' => 'password',
+                '_ConfirmPassword' => 'password'
+            ]
+        ]);
+        $this->assertEquals(302, $ok->getStatusCode());
+        $this->assertEquals(
+            '/user/success',
+            str_replace($base, '', $ok->getHeader('Location'))
+        );
+        $this->assertNotNull(Member::get()->filter('Email', $valid->Email)->first());
+    }
+
+    /**
      * The accept form must not be populated from an expired invitation.
      */
     public function testAcceptFormIgnoresExpiredInvite()

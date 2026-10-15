@@ -383,7 +383,7 @@ class UserController extends Controller implements PermissionProvider
     }
 
     /**
-     * Resolve the invitation a accept-link hash refers to.
+     * Resolve the invitation an accept-link hash refers to.
      *
      * Shared by accept() and saveInvite() so the two cannot drift apart on when an
      * invitation counts as usable.
