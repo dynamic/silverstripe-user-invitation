@@ -294,9 +294,13 @@ class UserController extends Controller implements PermissionProvider
 
                     $groups = json_decode($invite->Groups);
 
-                    // Add user group info
-                    foreach (Group::get()->filter(['Code' => $groups]) as $group) {
-                        $group->Members()->add($member);
+                    // Add user group info. An invitation may legitimately carry no group at all
+                    // (sendInvite() stores '[]', the CMS stores null for an empty selection), and
+                    // filtering Code against an empty set throws - so skip the loop instead.
+                    if (is_array($groups) && $groups !== []) {
+                        foreach (Group::get()->filter(['Code' => $groups]) as $group) {
+                            $group->Members()->add($member);
+                        }
                     }
                 }
             } catch (ValidationException $e) {

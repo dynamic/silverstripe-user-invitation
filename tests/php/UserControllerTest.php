@@ -202,6 +202,46 @@ class UserControllerTest extends FunctionalTest
     }
 
     /**
+     * An invitation sent without a group still has to be acceptable: the empty group list it is
+     * stored with must not break the accept step, which creates the Member and resolves the groups.
+     */
+    public function testAcceptInviteSentWithoutGroups()
+    {
+        $this->loginInAsSomeone('jane');
+        Config::modify()->set(UserInvitation::class, 'force_require_group', false);
+        Config::modify()->set(Email::class, 'admin_email', 'noreply@dynamicagency.com');
+        $data = [
+            'FirstName' => 'Ringo',
+            'Email' => 'ringo-accept@example.com',
+        ];
+        $controller = new UserController();
+        $controller->sendInvite($data, $controller->InvitationForm()->loadDataFrom($data));
+        /** @var UserInvitation $invitation */
+        $invitation = UserInvitation::get()->filter('Email', $data['Email'])->first();
+        $this->assertNotNull($invitation);
+        $this->assertEquals('[]', $invitation->Groups);
+        $acceptData = [
+            'HashID' => $invitation->TempHash,
+            'FirstName' => 'Ringo',
+            'Surname' => 'Star',
+            'Password' => [
+                '_Password' => 'password',
+                '_ConfirmPassword' => 'password'
+            ]
+        ];
+        $response = $this->controller->saveInvite(
+            $acceptData,
+            $this->controller->AcceptForm()->loadDataFrom($acceptData)
+        );
+        $this->assertEquals(302, $response->getStatusCode());
+        // The invitation is consumed and the member exists, with no groups attached.
+        $this->assertNull(UserInvitation::get()->filter('Email', $data['Email'])->first());
+        $member = Member::get()->filter('Email', $data['Email'])->first();
+        $this->assertTrue($member->exists());
+        $this->assertCount(0, $member->Groups());
+    }
+
+    /**
      * Tests that no invitation gets sent out without requisite permissions.
      */
     public function testSendInvitePermissionDenied()
