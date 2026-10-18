@@ -242,6 +242,50 @@ class UserControllerTest extends FunctionalTest
     }
 
     /**
+     * The CMS stores an empty group selection as null rather than '[]', so the accept step also has
+     * to cope with a null group list - and has to do it without handing that null to json_decode(),
+     * deprecated since PHP 8.1.
+     */
+    public function testAcceptInviteWithNullGroups()
+    {
+        /** @var UserInvitation $invitation */
+        $invitation = $this->objFromFixture(UserInvitation::class, 'joe');
+        $invitation->Groups = null;
+        $invitation->write();
+        $data = [
+            'HashID' => $invitation->TempHash,
+            'FirstName' => $invitation->FirstName,
+            'Surname' => 'Soap',
+            'Password' => [
+                '_Password' => 'password',
+                '_ConfirmPassword' => 'password'
+            ]
+        ];
+        $deprecations = [];
+        set_error_handler(
+            function (int $severity, string $message) use (&$deprecations): bool {
+                $deprecations[] = $severity . ': ' . $message;
+                return true;
+            },
+            E_DEPRECATED
+        );
+        try {
+            $response = $this->controller->saveInvite(
+                $data,
+                $this->controller->AcceptForm()->loadDataFrom($data)
+            );
+        } finally {
+            restore_error_handler();
+        }
+        $this->assertSame([], $deprecations);
+        $this->assertEquals(302, $response->getStatusCode());
+        $this->assertNull(UserInvitation::get()->filter('Email', $invitation->Email)->first());
+        $member = Member::get()->filter('Email', $invitation->Email)->first();
+        $this->assertTrue($member->exists());
+        $this->assertCount(0, $member->Groups());
+    }
+
+    /**
      * Tests that no invitation gets sent out without requisite permissions.
      */
     public function testSendInvitePermissionDenied()
