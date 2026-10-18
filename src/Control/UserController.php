@@ -176,7 +176,7 @@ class UserController extends Controller implements PermissionProvider
         $invite = UserInvitation::create();
         $form->saveInto($invite);
         // We now store the values as json, same as the backend
-        $groups = json_encode(array_values($data['Groups']));
+        $groups = json_encode(array_values((array) ($data['Groups'] ?? [])));
 
         $invite->Groups = $groups;
         try {
@@ -292,11 +292,16 @@ class UserController extends Controller implements PermissionProvider
                 if ($member->validate()) {
                     $member->write();
 
-                    $groups = json_decode($invite->Groups);
+                    $groups = json_decode((string) $invite->Groups);
 
-                    // Add user group info
-                    foreach (Group::get()->filter(['Code' => $groups]) as $group) {
-                        $group->Members()->add($member);
+                    // Add user group info. An invitation may legitimately carry no group at all
+                    // (sendInvite() stores '[]', the CMS stores null for an empty selection, which
+                    // the cast above decodes to null), and filtering Code against an empty set
+                    // throws - so skip the loop instead.
+                    if (is_array($groups) && $groups !== []) {
+                        foreach (Group::get()->filter(['Code' => $groups]) as $group) {
+                            $group->Members()->add($member);
+                        }
                     }
                 }
             } catch (ValidationException $e) {

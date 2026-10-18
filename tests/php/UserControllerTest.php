@@ -163,6 +163,35 @@ class UserControllerTest extends FunctionalTest
         $this->assertEquals(302, $response->getStatusCode());
     }
 
+    /**
+     * Regression test: with the default force_require_group = false config, an untouched multi-select
+     * is omitted from the POST body entirely, so sendInvite() receives no 'Groups' key at all. It must
+     * still record and send the invitation, storing an empty group list.
+     */
+    public function testSendInviteWithoutGroups()
+    {
+        $this->loginInAsSomeone('jane');
+        Config::modify()->set(UserInvitation::class, 'force_require_group', false);
+        Config::modify()->set(Email::class, 'admin_email', 'noreply@dynamicagency.com');
+        $data = [
+            'FirstName' => 'Ringo',
+            'Email' => 'ringo@example.com',
+        ];
+        // Built after the config change above: the validator's required fields are decided when
+        // the form is constructed.
+        $controller = new UserController();
+        $form = $controller->InvitationForm()->loadDataFrom($data);
+        $this->assertTrue($form->getValidator()->getResult()->isValid());
+        $response = $controller->sendInvite($data, $form);
+        $invitation = UserInvitation::get()->filter('Email', $data['Email']);
+        $this->assertCount(1, $invitation);
+        /** @var UserInvitation $invitation */
+        $ringo = $invitation->first();
+        $this->assertEquals('Ringo', $ringo->FirstName);
+        $this->assertEquals('[]', $ringo->Groups);
+        $this->assertEquals(302, $response->getStatusCode());
+    }
+
     public function invitationData()
     {
         return [
@@ -170,6 +199,90 @@ class UserControllerTest extends FunctionalTest
             'Email' => 'joe@example.com',
             'Groups' => ['test1', 'test2']
         ];
+    }
+
+    /**
+     * An invitation sent without a group still has to be acceptable: the empty group list it is
+     * stored with must not break the accept step, which creates the Member and resolves the groups.
+     */
+    public function testAcceptInviteSentWithoutGroups()
+    {
+        $this->loginInAsSomeone('jane');
+        Config::modify()->set(UserInvitation::class, 'force_require_group', false);
+        Config::modify()->set(Email::class, 'admin_email', 'noreply@dynamicagency.com');
+        $data = [
+            'FirstName' => 'Ringo',
+            'Email' => 'ringo-accept@example.com',
+        ];
+        $controller = new UserController();
+        $controller->sendInvite($data, $controller->InvitationForm()->loadDataFrom($data));
+        /** @var UserInvitation $invitation */
+        $invitation = UserInvitation::get()->filter('Email', $data['Email'])->first();
+        $this->assertNotNull($invitation);
+        $this->assertEquals('[]', $invitation->Groups);
+        $acceptData = [
+            'HashID' => $invitation->TempHash,
+            'FirstName' => 'Ringo',
+            'Surname' => 'Star',
+            'Password' => [
+                '_Password' => 'password',
+                '_ConfirmPassword' => 'password'
+            ]
+        ];
+        $response = $this->controller->saveInvite(
+            $acceptData,
+            $this->controller->AcceptForm()->loadDataFrom($acceptData)
+        );
+        $this->assertEquals(302, $response->getStatusCode());
+        // The invitation is consumed and the member exists, with no groups attached.
+        $this->assertNull(UserInvitation::get()->filter('Email', $data['Email'])->first());
+        $member = Member::get()->filter('Email', $data['Email'])->first();
+        $this->assertTrue($member->exists());
+        $this->assertCount(0, $member->Groups());
+    }
+
+    /**
+     * The CMS stores an empty group selection as null rather than '[]', so the accept step also has
+     * to cope with a null group list - and has to do it without handing that null to json_decode(),
+     * deprecated since PHP 8.1.
+     */
+    public function testAcceptInviteWithNullGroups()
+    {
+        /** @var UserInvitation $invitation */
+        $invitation = $this->objFromFixture(UserInvitation::class, 'joe');
+        $invitation->Groups = null;
+        $invitation->write();
+        $data = [
+            'HashID' => $invitation->TempHash,
+            'FirstName' => $invitation->FirstName,
+            'Surname' => 'Soap',
+            'Password' => [
+                '_Password' => 'password',
+                '_ConfirmPassword' => 'password'
+            ]
+        ];
+        $deprecations = [];
+        set_error_handler(
+            function (int $severity, string $message) use (&$deprecations): bool {
+                $deprecations[] = $severity . ': ' . $message;
+                return true;
+            },
+            E_DEPRECATED
+        );
+        try {
+            $response = $this->controller->saveInvite(
+                $data,
+                $this->controller->AcceptForm()->loadDataFrom($data)
+            );
+        } finally {
+            restore_error_handler();
+        }
+        $this->assertSame([], $deprecations);
+        $this->assertEquals(302, $response->getStatusCode());
+        $this->assertNull(UserInvitation::get()->filter('Email', $invitation->Email)->first());
+        $member = Member::get()->filter('Email', $invitation->Email)->first();
+        $this->assertTrue($member->exists());
+        $this->assertCount(0, $member->Groups());
     }
 
     /**
