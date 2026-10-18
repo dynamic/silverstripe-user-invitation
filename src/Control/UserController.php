@@ -176,7 +176,7 @@ class UserController extends Controller implements PermissionProvider
         $invite = UserInvitation::create();
         $form->saveInto($invite);
         // We now store the values as json, same as the backend
-        $groups = json_encode(array_values($data['Groups']));
+        $groups = json_encode(array_values((array) ($data['Groups'] ?? [])));
 
         $invite->Groups = $groups;
         try {

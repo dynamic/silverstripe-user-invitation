@@ -163,6 +163,35 @@ class UserControllerTest extends FunctionalTest
         $this->assertEquals(302, $response->getStatusCode());
     }
 
+    /**
+     * Regression test: with the default force_require_group = false config, an untouched multi-select
+     * is omitted from the POST body entirely, so sendInvite() receives no 'Groups' key at all. It must
+     * still record and send the invitation, storing an empty group list.
+     */
+    public function testSendInviteWithoutGroups()
+    {
+        $this->loginInAsSomeone('jane');
+        Config::modify()->set(UserInvitation::class, 'force_require_group', false);
+        Config::modify()->set(Email::class, 'admin_email', 'noreply@dynamicagency.com');
+        $data = [
+            'FirstName' => 'Ringo',
+            'Email' => 'ringo@example.com',
+        ];
+        // Built after the config change above: the validator's required fields are decided when
+        // the form is constructed.
+        $controller = new UserController();
+        $form = $controller->InvitationForm()->loadDataFrom($data);
+        $this->assertTrue($form->getValidator()->getResult()->isValid());
+        $response = $controller->sendInvite($data, $form);
+        $invitation = UserInvitation::get()->filter('Email', $data['Email']);
+        $this->assertCount(1, $invitation);
+        /** @var UserInvitation $invitation */
+        $ringo = $invitation->first();
+        $this->assertEquals('Ringo', $ringo->FirstName);
+        $this->assertEquals('[]', $ringo->Groups);
+        $this->assertEquals(302, $response->getStatusCode());
+    }
+
     public function invitationData()
     {
         return [
