@@ -88,12 +88,12 @@ class AutoloadPsr4Test extends TestCase
         }
 
         foreach (array_keys($mapping) as $prefix) {
-            $unused = array_values(array_filter(
+            $matching = array_values(array_filter(
                 $classes,
                 fn (string $class): bool => str_starts_with($class, $prefix)
             ));
             $this->assertNotEmpty(
-                $unused,
+                $matching,
                 sprintf(
                     'composer.json maps "%s", but no class in the module is under that namespace.',
                     $prefix
@@ -141,6 +141,8 @@ class AutoloadPsr4Test extends TestCase
 
     /**
      * The fully qualified name of the type a file declares, or null if it declares none.
+     *
+     * Handles the PHP 8.2+ `readonly class` modifier as well as `final` and `abstract`.
      */
     private function fqcnOf(string $path): ?string
     {
@@ -150,7 +152,7 @@ class AutoloadPsr4Test extends TestCase
             return null;
         }
         if (!preg_match(
-            '/^\s*(?:final\s+|abstract\s+)?(?:class|interface|trait|enum)\s+(\w+)/m',
+            '/^\s*(?:final\s+|abstract\s+)?(?:readonly\s+)?(?:class|interface|trait|enum)\s+(\w+)/m',
             $source,
             $declaration
         )) {
