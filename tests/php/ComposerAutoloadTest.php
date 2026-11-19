@@ -194,14 +194,14 @@ class ComposerAutoloadTest extends TestCase
             sprintf('%s does not declare a namespace.', $this->relativePath($file))
         );
 
-        return sprintf('%s\\%s', $this->declaredNamespacesFor($file), basename($file, '.php'));
+        return sprintf('%s\\%s', $this->declaredNamespaceFor($file), basename($file, '.php'));
     }
 
     /**
      * @param string $file Absolute path to a PHP file.
      * @return string The single namespace the file declares.
      */
-    private function declaredNamespacesFor(string $file): string
+    private function declaredNamespaceFor(string $file): string
     {
         preg_match('/^\s*namespace\s+([^;\s]+)\s*;/m', $this->contents($file), $matches);
 
