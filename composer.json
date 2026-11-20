@@ -37,8 +37,8 @@
     "prefer-stable": true,
     "autoload": {
         "psr-4": {
-            "Dynamic\\UserInvitations\\": "src/",
-            "Dynamic\\UserInvitations\\Test\\": "tests/php/"
+            "Dynamic\\SilverStripe\\UserInvitations\\": "src/",
+            "Dynamic\\SilverStripe\\UserInvitations\\Tests\\": "tests/php/"
         }
     },
     "config": {
